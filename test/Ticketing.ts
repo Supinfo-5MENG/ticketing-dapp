@@ -13,10 +13,6 @@ describe('Ticketing contract', () => {
         [owner, other] = await ethers.getSigners();
     });
 
-    it('Should store the event name', async () => {
-        expect(await ticketing.getEventName()).to.equal("Ticketing Dapp");
-    })
-
     it('Should create a ticket and assign it to the caller', async () => {
         // GIVEN
         await ticketing.createTicket();
@@ -50,5 +46,18 @@ describe('Ticketing contract', () => {
         await expect(
             ticketing.connect(other).useTicket(1)
         ).to.be.revertedWith("Only the ticket owner can use the ticket.");
+    });
+
+    it('Should create an event', async () => {
+        // GIVEN
+        await ticketing.createEvent("Concert");
+
+        // WHEN
+        const event = await ticketing.events(1);
+
+        // THEN
+        expect(event.id).to.equal(1);
+        expect(event.name).to.equal("Concert");
+        expect(event.exists).to.equal(true);
     });
 });

@@ -2,8 +2,7 @@
 pragma solidity ^0.8.28;
 
 contract Ticketing {
-    string public eventName;
-
+    // Tickets
     struct Ticket {
         uint256 id;
         address owner;
@@ -13,13 +12,29 @@ contract Ticketing {
     uint256 public ticketCount;
     mapping(uint256 => Ticket) public tickets;
 
-    constructor() {
-        eventName = "Ticketing Dapp";
-        ticketCount = 0;
+    // Events
+    struct Event {
+        uint256 id;
+        string name;
+        bool exists; 
     }
 
-    function getEventName() public view returns (string memory) {
-        return eventName;
+    uint256 public eventCount;
+    mapping(uint256 => Event) public events;
+
+    constructor() {
+        ticketCount = 0;
+        eventCount = 0;
+    }
+
+    function createEvent(string memory name) public {
+        eventCount += 1;
+
+        events[eventCount] = Event({
+            id: eventCount,
+            name: name,
+            exists: true
+        });
     }
 
     function createTicket() public {
