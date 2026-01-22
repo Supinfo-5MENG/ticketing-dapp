@@ -22,6 +22,9 @@ contract Ticketing {
     uint256 public eventCount;
     mapping(uint256 => Event) public events;
 
+    // 1 utilisateur a un seul ticket par event
+    mapping(uint256 => mapping(address => bool)) public hasTicketForEvent;
+
     constructor() {
         ticketCount = 0;
         eventCount = 0;
@@ -37,7 +40,10 @@ contract Ticketing {
         });
     }
 
-    function createTicket() public {
+    function createTicket(uint256 eventId) public {
+        require(events[eventId].exists, "Event does not exist.");
+        require(hasTicketForEvent[eventId][msg.sender] == false, "User already has a ticket for this event.");
+
         ticketCount += 1;
 
         tickets[ticketCount] = Ticket({
@@ -45,6 +51,7 @@ contract Ticketing {
             owner: msg.sender,
             used: false
         });
+        hasTicketForEvent[eventId][msg.sender] = true;
     }
 
     function useTicket(uint256 ticketId) public {
