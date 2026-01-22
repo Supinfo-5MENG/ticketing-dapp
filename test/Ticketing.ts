@@ -1,60 +1,54 @@
 import { expect } from 'chai';
 import { ethers } from "hardhat";
+import { Ticketing } from '../typechain-types';
 
 describe('Ticketing contract', () => {
+    let ticketing: Ticketing;
+    let owner: any;
+    let other: any;
+
+    beforeEach(async () => {
+        const Ticketing = await ethers.getContractFactory('Ticketing');
+        ticketing = await Ticketing.deploy();
+        [owner, other] = await ethers.getSigners();
+    });
 
     it('Should store the event name', async () => {
-        const Ticketing = await ethers.getContractFactory('Ticketing');
-        const ticketing = await Ticketing.deploy();
-
         expect(await ticketing.getEventName()).to.equal("Ticketing Dapp");
     })
 
     it('Should create a ticket and assign it to the caller', async () => {
-        const Ticketing = await ethers.getContractFactory('Ticketing');
-        const ticketing = await Ticketing.deploy();
-
-        const [owner] = await ethers.getSigners();
-
+        // GIVEN
         await ticketing.createTicket();
+
+        // WHEN
         const ticket = await ticketing.tickets(1);
 
+        // THEN
         expect(ticket.id).to.equal(1);
         expect(ticket.owner).to.equal(owner.address);
-        expect
     })
 
     it('Owner can use their ticket', async () => {
-        const Ticketing = await ethers.getContractFactory('Ticketing');
-        const ticketing = await Ticketing.deploy();
-
-        const [owner] = await ethers.getSigners();
-
-        // Créer un ticket
+        // GIVEN
         await ticketing.createTicket();
 
-        // Utiliser le ticket
+        // WHEN
         await ticketing.useTicket(1);
 
-        // Vérifier que le ticket est marqué comme utilisé
+        // THEN
         const ticket = await ticketing.tickets(1);
-
         expect(ticket.used).to.equal(true);
         expect(ticket.owner).to.equal(owner.address);
     });
 
     it('Non owner cannot use someone else\'s ticket', async () => {
-        const Ticketing = await ethers.getContractFactory('Ticketing');
-        const ticketing = await Ticketing.deploy();
-
-        const [owner, nonOwner] = await ethers.getSigners();
-
-        // Créer un ticket par le propriétaire
+        // GIVEN
         await ticketing.createTicket();
 
-        // Tenter d'utiliser le ticket par un non-propriétaire
+        // WHEN / THEN
         await expect(
-            ticketing.connect(nonOwner).useTicket(1)
+            ticketing.connect(other).useTicket(1)
         ).to.be.revertedWith("Only the ticket owner can use the ticket.");
     });
 });
