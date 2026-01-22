@@ -31,4 +31,13 @@ contract Ticketing {
             used: false
         });
     }
+
+    function useTicket(uint256 ticketId) public {
+        Ticket storage ticket = tickets[ticketId];
+
+        require(ticket.owner == msg.sender, "Only the ticket owner can use the ticket.");
+        require(ticket.used == false, "Ticket has already been used.");
+
+        ticket.used = true;
+    }
 }
