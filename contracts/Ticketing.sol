@@ -25,6 +25,7 @@ contract Ticketing {
         uint256 id;
         string name;
         uint256 endDate;
+        address organizer;
         bool exists; 
     }
 
@@ -47,6 +48,7 @@ contract Ticketing {
             id: eventCount,
             name: name,
             endDate: endDate,
+            organizer: msg.sender,
             exists: true
         });
     }

@@ -102,7 +102,16 @@ describe('Ticketing contract', () => {
         expect(event.id).to.equal(2);
         expect(event.name).to.equal("Concert C");
         expect(event.endDate).to.equal(futureDate);
+        expect(event.organizer).to.equal(owner.address);
         expect(event.exists).to.equal(true);
+    });
+
+    it("Should set the event creator as organizer", async () => {
+        // WHEN
+        const event = await ticketing.events(1);
+
+        // THEN
+        expect(event.organizer).to.equal(owner.address);
     });
 
     it('Should not create an event with a past end date', async () => {
