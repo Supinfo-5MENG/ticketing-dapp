@@ -52,15 +52,7 @@ contract Ticketing {
             exists: true
         });
 
-        ticketCount += 1;
-
-        tickets[ticketCount] = Ticket({
-            id: ticketCount,
-            owner: msg.sender,
-            used: false,
-            ticketType: TicketType.ORGANIZER
-        });
-        hasTicketForEvent[eventCount][msg.sender] = true;
+        _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
     }
 
     function createTicket(uint256 eventId, TicketType ticketType) public {
@@ -68,18 +60,20 @@ contract Ticketing {
         require(hasTicketForEvent[eventId][msg.sender] == false, "User already has a ticket for this event.");
 
         require(ticketType == TicketType.STANDARD, "Only STANDARD tickets are allowed for now.");
+        _createTicket(eventId, msg.sender, ticketType);
+    }
 
-
-
+    function _createTicket(uint256 eventId, address owner, TicketType ticketType) private {
         ticketCount += 1;
 
         tickets[ticketCount] = Ticket({
             id: ticketCount,
-            owner: msg.sender,
+            owner: owner,
             used: false,
             ticketType: ticketType
         });
-        hasTicketForEvent[eventId][msg.sender] = true;
+
+        hasTicketForEvent[eventId][owner] = true;
     }
 
     function useTicket(uint256 ticketId) public {
