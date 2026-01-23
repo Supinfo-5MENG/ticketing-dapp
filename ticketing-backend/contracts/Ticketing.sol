@@ -24,11 +24,11 @@ contract Ticketing {
     // Events
     struct Event {
         uint256 id;
-        string name;
         uint256 endDate;
         address organizer;
         bool exists; 
         bool cancelled;
+        string name;
     }
 
     uint256 public eventCount;
