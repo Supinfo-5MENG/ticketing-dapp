@@ -340,7 +340,7 @@ describe('Ticketing contract', () => {
 
             // WHEN / THEN
             await expect(ticketing.connect(other).resellTicket(1, buyer.address))
-                .to.emit(ticketing, 'TicketResolt')
+                .to.emit(ticketing, 'TicketResold')
                 .withArgs(ticketId, 1, other.address, buyer.address);
 
             // THEN

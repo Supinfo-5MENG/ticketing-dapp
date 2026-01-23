@@ -44,7 +44,7 @@ contract Ticketing {
     event TicketCreated(uint256 indexed ticketId, uint256 indexed eventId, address indexed owner, TicketType ticketType);
     event TicketUsed(uint256 indexed ticketId, address indexed owner);
     event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
-    event TicketResolt(uint256 indexed ticketId, uint256 indexed eventId, address from, address to);
+    event TicketResold(uint256 indexed ticketId, uint256 indexed eventId, address from, address to);
     event TicketRemoved(uint256 indexed ticketId, uint256 indexed eventId, address owner, TicketType ticketType);
 
     constructor() {
@@ -151,7 +151,7 @@ contract Ticketing {
         ticketIdByEventAndOwner[eventId][msg.sender] = 0;
         ticket.owner = to;
 
-        emit TicketResolt(ticketId, eventId, msg.sender, to);
+        emit TicketResold(ticketId, eventId, msg.sender, to);
     }
 
     function useTicket(uint256 ticketId) public {
