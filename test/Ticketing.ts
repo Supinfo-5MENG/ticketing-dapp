@@ -29,52 +29,53 @@ describe('Ticketing contract', () => {
 
     it('Should create a ticket and assign it to the caller', async () => {
         // GIVEN
-        await ticketing.createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, 0);
 
         // WHEN
-        const ticket = await ticketing.tickets(1);
+        const ticket = await ticketing.tickets(2); // Le premier ticket est pour l'organisateur
 
         // THEN
-        expect(ticket.id).to.equal(1);
-        expect(ticket.owner).to.equal(owner.address);
+        expect(ticket.id).to.equal(2);
+        expect(ticket.owner).to.equal(other.address);
     })
 
     it('Should owner can use their ticket', async () => {
         // GIVEN
-        await ticketing.createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, 0);
 
         // WHEN
-        await ticketing.useTicket(1);
+        await ticketing.connect(other).useTicket(2);
+        const ticket = await ticketing.tickets(2);
 
         // THEN
-        const ticket = await ticketing.tickets(1);
         expect(ticket.used).to.equal(true);
-        expect(ticket.owner).to.equal(owner.address);
+        expect(ticket.owner).to.equal(other.address);
     });
 
     it('Should non owner cannot use someone else\'s ticket', async () => {
         // GIVEN
-        await ticketing.createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, 0);
 
         // WHEN / THEN
         await expect(
-            ticketing.connect(other).useTicket(1)
+            ticketing.connect(owner).useTicket(2)
         ).to.be.revertedWith("Only the ticket owner can use the ticket.");
     });
 
     it('Should user can register once per event', async () => {
         // WHEN
-        await ticketing.createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, 0);
 
         // THEN
         await expect(
-            ticketing.createTicket(1, 0)
+            ticketing.connect(other).createTicket(1, 0)
         ).to.be.revertedWith("User already has a ticket for this event.");
     });
 
     it("Should not allow creating VIP ticket for now", async () => {
+        // WHEN / THEN
         await expect(
-            ticketing.createTicket(1, 1) // VIP
+            ticketing.connect(other).createTicket(1, 1) // VIP
         ).to.be.revertedWith("Only STANDARD tickets are allowed for now.");
     });
 
@@ -83,14 +84,14 @@ describe('Ticketing contract', () => {
         await ticketing.createEvent("Concert B", futureDate);
 
         // WHEN
-        await ticketing.createTicket(1, 0);
-        await ticketing.createTicket(2, 0);
+        await ticketing.connect(other).createTicket(1, 0);
+        await ticketing.connect(other).createTicket(2, 0);
+        const ticket1 = await ticketing.tickets(3); // Ticket ID 2 est pour l'organisateur de 'Concert B'
+        const ticket2 = await ticketing.tickets(4);
 
         // THEN
-        const ticket1 = await ticketing.tickets(1);
-        const ticket2 = await ticketing.tickets(2);
-        expect(ticket1.owner).to.equal(owner.address);
-        expect(ticket2.owner).to.equal(owner.address);
+        expect(ticket1.owner).to.equal(other.address);
+        expect(ticket2.owner).to.equal(other.address);
     });
 
     it('Should create an event with a future end date', async () => {
@@ -112,6 +113,21 @@ describe('Ticketing contract', () => {
 
         // THEN
         expect(event.organizer).to.equal(owner.address);
+    });
+
+    it("Should create an ORGANIZER ticket for the event creator", async () => {
+        // GIVEN
+        const ticket = await ticketing.tickets(1);
+
+        // WHEN
+        expect(ticket.owner).to.equal(owner.address);
+        expect(ticket.ticketType).to.equal(3); // ORGANIZER
+    });
+
+    it("Organizer should not be able to create another ticket for the same event", async () => {
+        await expect(
+            ticketing.createTicket(1, 0) // STANDARD
+        ).to.be.revertedWith("User already has a ticket for this event.");
     });
 
     it('Should not create an event with a past end date', async () => {

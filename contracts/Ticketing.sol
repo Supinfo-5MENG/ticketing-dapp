@@ -51,6 +51,16 @@ contract Ticketing {
             organizer: msg.sender,
             exists: true
         });
+
+        ticketCount += 1;
+
+        tickets[ticketCount] = Ticket({
+            id: ticketCount,
+            owner: msg.sender,
+            used: false,
+            ticketType: TicketType.ORGANIZER
+        });
+        hasTicketForEvent[eventCount][msg.sender] = true;
     }
 
     function createTicket(uint256 eventId, TicketType ticketType) public {
