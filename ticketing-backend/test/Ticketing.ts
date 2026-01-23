@@ -266,7 +266,6 @@ describe('Ticketing contract', () => {
             [, , buyer] = await ethers.getSigners();
         });
 
-
         it('Should allow a user to resell a STANDARD ticket', async () => {
             // GIVEN
             await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
@@ -365,6 +364,74 @@ describe('Ticketing contract', () => {
             await expect(ticketing.connect(other).useTicket(2))
                 .to.emit(ticketing, "TicketUsed")
                 .withArgs(2, other.address);
+        });
+    });
+
+    describe('RemoveTicket() tests suite', () => {
+        it('Should allow organizer to remove VIP ticket', async () => {
+            // GIVEN
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // WHEN / THEN
+            await expect(ticketing.connect(owner).removeTicket(1, other.address))
+                .to.emit(ticketing, 'TicketRemoved')
+                .withArgs(ticketId, 1, other.address, TicketType.VIP);
+
+            // THEN
+            const ticketAfter = await ticketing.tickets(ticketId);
+            expect(ticketAfter.owner).to.equal(ethers.ZeroAddress); // ticket supprimé
+            expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
+        });
+
+        it('Should allow organizer to remove STAFF ticket', async () => {
+            // GIVEN
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // WHEN / THEN
+            await expect(ticketing.connect(owner).removeTicket(1, other.address))
+                .to.emit(ticketing, 'TicketRemoved')
+                .withArgs(ticketId, 1, other.address, TicketType.STAFF);
+
+            // THEN
+            const ticketAfter = await ticketing.tickets(ticketId);
+            expect(ticketAfter.owner).to.equal(ethers.ZeroAddress); // ticket supprimé
+            expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
+        });
+
+        it('Should not allow removing STANDARD ticket', async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(owner).removeTicket(1, other.address)
+            ).to.be.revertedWith("Only VIP or STAFF tickets can be removed by organizer.");
+        });
+
+        it('Should not allow non-organizer to remove a ticket', async () => {
+            // GIVEN
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).removeTicket(1, other.address)
+            ).to.be.revertedWith("Only organizer can remove tickets.");
+        });
+
+        it('Should not allow removing a ticket for a non-existent event', async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(owner).removeTicket(999, other.address)
+            ).to.be.revertedWith("Event does not exist.");
+        });
+
+        it('Should not allow removing a ticket that the user does not have', async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(owner).removeTicket(1, other.address)
+            ).to.be.revertedWith("User does not have a ticket for this event.");
         });
     });
 });

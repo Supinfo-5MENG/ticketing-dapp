@@ -41,6 +41,7 @@ contract Ticketing {
     event TicketUsed(uint256 indexed ticketId, address indexed owner);
     event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
     event TicketResolt(uint256 indexed ticketId, uint256 indexed eventId, address from, address to);
+    event TicketRemoved(uint256 indexed ticketId, uint256 indexed eventId, address owner, TicketType ticketType);
 
     constructor() {
         ticketCount = 0;
@@ -140,5 +141,22 @@ contract Ticketing {
 
         ticket.used = true;
         emit TicketUsed(ticketId, msg.sender);
+    }
+
+    function removeTicket(uint256 eventId, address user) public {
+        require(events[eventId].exists, "Event does not exist.");
+        require(msg.sender == events[eventId].organizer, "Only organizer can remove tickets.");
+
+        uint256 ticketId = ticketIdByEventAndOwner[eventId][user];
+        require(ticketId != 0, "User does not have a ticket for this event.");
+
+        Ticket storage ticket = tickets[ticketId];
+        require(ticket.ticketType == TicketType.VIP || ticket.ticketType == TicketType.STAFF, "Only VIP or STAFF tickets can be removed by organizer.");
+
+        ticketIdByEventAndOwner[eventId][user] = 0;
+        TicketType ticketType = ticket.ticketType;
+        delete tickets[ticketId];
+
+        emit TicketRemoved(ticketId, eventId, user, ticketType);
     }
 }
