@@ -3,10 +3,18 @@ pragma solidity ^0.8.28;
 
 contract Ticketing {
     // Tickets
+    enum TicketType {
+        STANDARD,
+        VIP,
+        STAFF,
+        ORGANIZER
+    }
+
     struct Ticket {
         uint256 id;
         address owner;
         bool used;
+        TicketType ticketType;
     }
 
     uint256 public ticketCount;
@@ -43,16 +51,21 @@ contract Ticketing {
         });
     }
 
-    function createTicket(uint256 eventId) public {
+    function createTicket(uint256 eventId, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
         require(hasTicketForEvent[eventId][msg.sender] == false, "User already has a ticket for this event.");
+
+        require(ticketType == TicketType.STANDARD, "Only STANDARD tickets are allowed for now.");
+
+
 
         ticketCount += 1;
 
         tickets[ticketCount] = Ticket({
             id: ticketCount,
             owner: msg.sender,
-            used: false
+            used: false,
+            ticketType: ticketType
         });
         hasTicketForEvent[eventId][msg.sender] = true;
     }

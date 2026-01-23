@@ -29,7 +29,7 @@ describe('Ticketing contract', () => {
 
     it('Should create a ticket and assign it to the caller', async () => {
         // GIVEN
-        await ticketing.createTicket(1);
+        await ticketing.createTicket(1, 0);
 
         // WHEN
         const ticket = await ticketing.tickets(1);
@@ -41,7 +41,7 @@ describe('Ticketing contract', () => {
 
     it('Should owner can use their ticket', async () => {
         // GIVEN
-        await ticketing.createTicket(1);
+        await ticketing.createTicket(1, 0);
 
         // WHEN
         await ticketing.useTicket(1);
@@ -54,7 +54,7 @@ describe('Ticketing contract', () => {
 
     it('Should non owner cannot use someone else\'s ticket', async () => {
         // GIVEN
-        await ticketing.createTicket(1);
+        await ticketing.createTicket(1, 0);
 
         // WHEN / THEN
         await expect(
@@ -64,12 +64,18 @@ describe('Ticketing contract', () => {
 
     it('Should user can register once per event', async () => {
         // WHEN
-        await ticketing.createTicket(1);
+        await ticketing.createTicket(1, 0);
 
         // THEN
         await expect(
-            ticketing.createTicket(1)
+            ticketing.createTicket(1, 0)
         ).to.be.revertedWith("User already has a ticket for this event.");
+    });
+
+    it("Should not allow creating VIP ticket for now", async () => {
+        await expect(
+            ticketing.createTicket(1, 1) // VIP
+        ).to.be.revertedWith("Only STANDARD tickets are allowed for now.");
     });
 
     it('Should user can register to multiple events', async () => {
@@ -77,8 +83,8 @@ describe('Ticketing contract', () => {
         await ticketing.createEvent("Concert B", futureDate);
 
         // WHEN
-        await ticketing.createTicket(1);
-        await ticketing.createTicket(2);
+        await ticketing.createTicket(1, 0);
+        await ticketing.createTicket(2, 0);
 
         // THEN
         const ticket1 = await ticketing.tickets(1);
