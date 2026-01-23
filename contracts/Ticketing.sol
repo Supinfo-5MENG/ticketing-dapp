@@ -16,6 +16,7 @@ contract Ticketing {
     struct Event {
         uint256 id;
         string name;
+        uint256 endDate;
         bool exists; 
     }
 
@@ -30,12 +31,14 @@ contract Ticketing {
         eventCount = 0;
     }
 
-    function createEvent(string memory name) public {
+    function createEvent(string memory name, uint256 endDate) public {
+        require(endDate > block.timestamp, "End date must be in the future.");
         eventCount += 1;
 
         events[eventCount] = Event({
             id: eventCount,
             name: name,
+            endDate: endDate,
             exists: true
         });
     }

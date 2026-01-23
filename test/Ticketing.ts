@@ -7,12 +7,20 @@ describe('Ticketing contract', () => {
     let owner: any;
     let other: any;
 
+    let futureDate: number;
+
     beforeEach(async () => {
         const Ticketing = await ethers.getContractFactory('Ticketing');
         ticketing = await Ticketing.deploy();
         [owner, other] = await ethers.getSigners();
 
-        await ticketing.createEvent("Concert A");
+        // Calcul du temps à partir du bloc actuel
+        const blockNumberBefore = await ethers.provider.getBlockNumber();
+        const blockBefore = await ethers.provider.getBlock(blockNumberBefore);
+        const now = blockBefore?.timestamp!;
+        futureDate = now + 3600;
+
+        await ticketing.createEvent("Concert A", futureDate);
     });
 
     it('Should create a ticket and assign it to the caller', async () => {
@@ -27,7 +35,7 @@ describe('Ticketing contract', () => {
         expect(ticket.owner).to.equal(owner.address);
     })
 
-    it('Owner can use their ticket', async () => {
+    it('Should owner can use their ticket', async () => {
         // GIVEN
         await ticketing.createTicket(1);
 
@@ -40,7 +48,7 @@ describe('Ticketing contract', () => {
         expect(ticket.owner).to.equal(owner.address);
     });
 
-    it('Non owner cannot use someone else\'s ticket', async () => {
+    it('Should non owner cannot use someone else\'s ticket', async () => {
         // GIVEN
         await ticketing.createTicket(1);
 
@@ -50,19 +58,7 @@ describe('Ticketing contract', () => {
         ).to.be.revertedWith("Only the ticket owner can use the ticket.");
     });
 
-    it('Should create an event', async () => {
-        // GIVEN
-
-        // WHEN
-        const event = await ticketing.events(1);
-
-        // THEN
-        expect(event.id).to.equal(1);
-        expect(event.name).to.equal("Concert A");
-        expect(event.exists).to.equal(true);
-    });
-
-        it('Should user can register once per event', async () => {
+    it('Should user can register once per event', async () => {
         // WHEN
         await ticketing.createTicket(1);
 
@@ -74,7 +70,7 @@ describe('Ticketing contract', () => {
 
     it('Should user can register to multiple events', async () => {
         // GIVEN
-        await ticketing.createEvent("Concert B");
+        await ticketing.createEvent("Concert B", futureDate);
 
         // WHEN
         await ticketing.createTicket(1);
@@ -86,4 +82,26 @@ describe('Ticketing contract', () => {
         expect(ticket1.owner).to.equal(owner.address);
         expect(ticket2.owner).to.equal(owner.address);
     });
+
+    it('Should create an event with a future end date', async () => {
+        // WHEN
+        await ticketing.createEvent("Concert C", futureDate);
+        const event = await ticketing.events(2);
+        
+        // THEN
+        expect(event.id).to.equal(2);
+        expect(event.name).to.equal("Concert C");
+        expect(event.endDate).to.equal(futureDate);
+        expect(event.exists).to.equal(true);
+    });
+
+    it('Should not create an event with a past end date', async () => {
+        // GIVEN
+        const pastDate = futureDate - 7200;
+
+        // WHEN / THEN
+        await expect(
+            ticketing.createEvent("Concert C", pastDate)
+        ).to.be.revertedWith("End date must be in the future.");
+    })
 });
