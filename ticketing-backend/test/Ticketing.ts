@@ -259,6 +259,80 @@ describe('Ticketing contract', () => {
         });
     });
 
+    describe('resellTicket() tests suite', () => {
+        let buyer: any;
+
+        beforeEach(async () => {
+            [, , buyer] = await ethers.getSigners();
+        });
+
+
+        it('Should allow a user to resell a STANDARD ticket', async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // WHEN / THEN
+            await expect(ticketing.connect(other).resellTicket(1, buyer.address))
+                .to.emit(ticketing, 'TicketResolt')
+                .withArgs(ticketId, 1, other.address, buyer.address);
+
+            // THEN
+            const ticket = await ticketing.tickets(ticketId);
+            expect(ticket.owner).to.equal(buyer.address);
+            expect(await ticketing.ticketIdByEventAndOwner(1, buyer.address)).to.equal(ticketId);
+            expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
+        });
+
+        it('Should not allow reselling VIP ticket', async () => {
+            // GIVEN
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, buyer.address)
+            ).to.be.revertedWith("Only STANDARD tickets can be resold.");
+        });
+
+        it('Should not allow reselling STAFF ticket', async () => {
+            // GIVEN
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, buyer.address)
+            ).to.be.revertedWith("Only STANDARD tickets can be resold.");
+        });
+
+        it('Should not allow reselling to someone who already has a ticket', async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(buyer).createTicket(1, TicketType.STANDARD);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, buyer.address)
+            ).to.be.revertedWith("Recipient already has a ticket for this event.");
+        });
+
+        it('Should not allow reselling for an event that does not exist', async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(999, buyer.address)
+            ).to.be.revertedWith("Event does not exist.");
+        });
+
+        it('Should not allow reselling a ticket the caller does not own', async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(buyer).resellTicket(1, owner.address)
+            ).to.be.revertedWith("You do not own a ticket for this event.");
+        });
+    });
+
     describe('useTicket() tests suite', () => {
         it('Should owner can use their ticket', async () => {
             // GIVEN

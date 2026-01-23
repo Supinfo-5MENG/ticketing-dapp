@@ -40,6 +40,7 @@ contract Ticketing {
     event TicketCreated(uint256 indexed ticketId, uint256 indexed eventId, address indexed owner, TicketType ticketType);
     event TicketUsed(uint256 indexed ticketId, address indexed owner);
     event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
+    event TicketResolt(uint256 indexed ticketId, uint256 indexed eventId, address from, address to);
 
     constructor() {
         ticketCount = 0;
@@ -112,6 +113,23 @@ contract Ticketing {
         TicketType oldType = ticket.ticketType;
         ticket.ticketType = newType;
         emit TicketTypeUpdated(ticketId, user, oldType, newType);
+    }
+
+    function resellTicket(uint256 eventId, address to) public {
+        require(events[eventId].exists, "Event does not exist.");
+        
+        uint256 ticketId = ticketIdByEventAndOwner[eventId][msg.sender];
+        require(ticketId != 0, "You do not own a ticket for this event.");
+
+        Ticket storage ticket = tickets[ticketId];
+        require(ticket.ticketType == TicketType.STANDARD, "Only STANDARD tickets can be resold.");
+        require(ticketIdByEventAndOwner[eventId][to] == 0, "Recipient already has a ticket for this event.");
+
+        ticketIdByEventAndOwner[eventId][to] = ticketId;
+        ticketIdByEventAndOwner[eventId][msg.sender] = 0;
+        ticket.owner = to;
+
+        emit TicketResolt(ticketId, eventId, msg.sender, to);
     }
 
     function useTicket(uint256 ticketId) public {
