@@ -63,6 +63,13 @@ describe('Ticketing contract', () => {
             // THEN
             expect(event.organizer).to.equal(owner.address);
         });
+
+        it("Should emit EventCreated when creating an event", async () => {
+            // WHEN / THEN
+            await expect(ticketing.createEvent("Concert D", futureDate))
+                .to.emit(ticketing, "EventCreated")
+                .withArgs(2, "Concert D", owner.address, futureDate);
+        });
     });
 
     describe('createTicket() tests suite', () => {
@@ -133,17 +140,27 @@ describe('Ticketing contract', () => {
                 ticketing.connect(other).createTicket(1, TicketType.STAFF)
             ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
         });
+
+        it("Should emit TicketCreated when a user buys a STANDARD ticket", async () => {
+            // WHEN / THEN
+            await expect(ticketing.connect(other).createTicket(1, TicketType.STANDARD))
+                .to.emit(ticketing, "TicketCreated")
+                .withArgs(2, 1, other.address, TicketType.STANDARD); // ticketId 2, eventId 1
+        });
     });
 
     describe('createTicketFor() tests suite', () => {
         it('Should organizer can create VIP ticket for a user', async () => {
-            // WHEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+            // WHEN / THEN
+            await expect(ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP))
+                .to.emit(ticketing, "TicketCreated")
+                .withArgs(2, 1, other.address, TicketType.VIP);
 
             // THEN
             const ticket = await ticketing.tickets(2);
             expect(ticket.owner).to.equal(other.address);
             expect(ticket.ticketType).to.equal(TicketType.VIP);
+
         });
 
         it('Should non-organizer cannot create tickets for others', async () => {
@@ -264,6 +281,16 @@ describe('Ticketing contract', () => {
             await expect(
                 ticketing.connect(owner).useTicket(2)
             ).to.be.revertedWith("Only the ticket owner can use the ticket.");
+        });
+
+        it("Should emit TicketUsed when a ticket is used", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            
+            // WHEN / THEN
+            await expect(ticketing.connect(other).useTicket(2))
+                .to.emit(ticketing, "TicketUsed")
+                .withArgs(2, other.address);
         });
     });
 });

@@ -36,6 +36,9 @@ contract Ticketing {
     mapping(uint256 => mapping(address => uint256)) public ticketIdByEventAndOwner;
 
     // Events
+    event EventCreated(uint256 indexed eventId, string name, address indexed organizer, uint256 endDate);
+    event TicketCreated(uint256 indexed ticketId, uint256 indexed eventId, address indexed owner, TicketType ticketType);
+    event TicketUsed(uint256 indexed ticketId, address indexed owner);
     event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
 
     constructor() {
@@ -56,6 +59,7 @@ contract Ticketing {
         });
 
         _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
+        emit EventCreated(eventCount, name, msg.sender, endDate);
     }
 
     function createTicket(uint256 eventId, TicketType ticketType) public {
@@ -91,6 +95,7 @@ contract Ticketing {
         });
 
         ticketIdByEventAndOwner[eventId][owner] = ticketCount;
+        emit TicketCreated(ticketCount, eventId, owner, ticketType);
     }
 
     function updateTicketType(uint256 eventId, address user, TicketType newType) public {
@@ -116,5 +121,6 @@ contract Ticketing {
         require(ticket.used == false, "Ticket has already been used.");
 
         ticket.used = true;
+        emit TicketUsed(ticketId, msg.sender);
     }
 }
