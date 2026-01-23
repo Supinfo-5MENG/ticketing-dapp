@@ -32,8 +32,8 @@ contract Ticketing {
     uint256 public eventCount;
     mapping(uint256 => Event) public events;
 
-    // 1 utilisateur a un seul ticket par event
-    mapping(uint256 => mapping(address => bool)) public hasTicketForEvent;
+    // eventId => user => ticketId
+    mapping(uint256 => mapping(address => uint256)) public ticketIdByEventAndOwner;
 
     constructor() {
         ticketCount = 0;
@@ -57,7 +57,7 @@ contract Ticketing {
 
     function createTicket(uint256 eventId, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
-        require(hasTicketForEvent[eventId][msg.sender] == false, "User already has a ticket for this event.");
+        require(ticketIdByEventAndOwner[eventId][msg.sender] == 0, "User already has a ticket for this event.");
 
         if (ticketType == TicketType.VIP || ticketType == TicketType.STAFF) {
             require(msg.sender == events[eventId].organizer, "Only the event organizer can create VIP or STAFF tickets.");
@@ -71,7 +71,7 @@ contract Ticketing {
     function createTicketFor(uint256 eventId, address to, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
         require(events[eventId].organizer == msg.sender, "Only organizer can create tickets for others.");
-        require(hasTicketForEvent[eventId][to] == false, "User already has a ticket for this event.");
+        require(ticketIdByEventAndOwner[eventId][to] == 0, "User already has a ticket for this event.");
         require(ticketType == TicketType.VIP || ticketType == TicketType.STAFF, "Only VIP or STAFF tickets can be created for others.");
 
         _createTicket(eventId, to, ticketType);
@@ -87,7 +87,7 @@ contract Ticketing {
             ticketType: ticketType
         });
 
-        hasTicketForEvent[eventId][owner] = true;
+        ticketIdByEventAndOwner[eventId][owner] = ticketCount;
     }
 
     function useTicket(uint256 ticketId) public {
