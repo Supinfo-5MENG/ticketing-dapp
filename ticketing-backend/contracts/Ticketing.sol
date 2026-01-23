@@ -35,6 +35,9 @@ contract Ticketing {
     // eventId => user => ticketId
     mapping(uint256 => mapping(address => uint256)) public ticketIdByEventAndOwner;
 
+    // Events
+    event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
+
     constructor() {
         ticketCount = 0;
         eventCount = 0;
@@ -88,6 +91,22 @@ contract Ticketing {
         });
 
         ticketIdByEventAndOwner[eventId][owner] = ticketCount;
+    }
+
+    function updateTicketType(uint256 eventId, address user, TicketType newType) public {
+        require(events[eventId].exists, "Event does not exist.");
+        require(msg.sender == events[eventId].organizer, "Only organizer can update tickets.");
+        require(newType == TicketType.STANDARD || newType == TicketType.VIP || newType == TicketType.STAFF, "Invalid ticket type.");
+
+        uint256 ticketId = ticketIdByEventAndOwner[eventId][user];
+        require(ticketId != 0, "User does not have a ticket for this event.");
+
+        Ticket storage ticket = tickets[ticketId];
+        require(ticket.ticketType != TicketType.ORGANIZER, "Cannot modify organizer ticket.");
+
+        TicketType oldType = ticket.ticketType;
+        ticket.ticketType = newType;
+        emit TicketTypeUpdated(ticketId, user, oldType, newType);
     }
 
     function useTicket(uint256 ticketId) public {

@@ -2,6 +2,14 @@ import { expect } from 'chai';
 import { ethers } from "hardhat";
 import { Ticketing } from '../typechain-types';
 
+const TicketType = {
+    STANDARD: 0,
+    VIP: 1,
+    STAFF: 2,
+    ORGANIZER: 3,
+    UNKNOWN: 99,
+}
+
 describe('Ticketing contract', () => {
     let ticketing: Ticketing;
     let owner: any;
@@ -29,7 +37,7 @@ describe('Ticketing contract', () => {
 
     it('Should create a ticket and assign it to the caller', async () => {
         // GIVEN
-        await ticketing.connect(other).createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
 
         // WHEN
         const ticket = await ticketing.tickets(2); // Le premier ticket est pour l'organisateur
@@ -41,7 +49,7 @@ describe('Ticketing contract', () => {
 
     it('Should owner can use their ticket', async () => {
         // GIVEN
-        await ticketing.connect(other).createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
 
         // WHEN
         await ticketing.connect(other).useTicket(2);
@@ -54,7 +62,7 @@ describe('Ticketing contract', () => {
 
     it('Should non owner cannot use someone else\'s ticket', async () => {
         // GIVEN
-        await ticketing.connect(other).createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
 
         // WHEN / THEN
         await expect(
@@ -64,24 +72,24 @@ describe('Ticketing contract', () => {
 
     it('Should user can register once per event', async () => {
         // WHEN
-        await ticketing.connect(other).createTicket(1, 0);
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
 
         // THEN
         await expect(
-            ticketing.connect(other).createTicket(1, 0)
+            ticketing.connect(other).createTicket(1, TicketType.STANDARD)
         ).to.be.revertedWith("User already has a ticket for this event.");
     });
 
     it("Should not allow non-organizer to create VIP ticket", async () => {
         // WHEN / THEN
         await expect(
-            ticketing.connect(other).createTicket(1, 1) // VIP
+            ticketing.connect(other).createTicket(1, TicketType.VIP)
         ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
     });
 
     it("Should not allow non-organizer to create STAFF ticket", async () => {
         await expect(
-            ticketing.connect(other).createTicket(1, 2) // STAFF
+            ticketing.connect(other).createTicket(1, TicketType.STAFF) // STAFF
         ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
     });
 
@@ -90,8 +98,8 @@ describe('Ticketing contract', () => {
         await ticketing.createEvent("Concert B", futureDate);
 
         // WHEN
-        await ticketing.connect(other).createTicket(1, 0);
-        await ticketing.connect(other).createTicket(2, 0);
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+        await ticketing.connect(other).createTicket(2, TicketType.STANDARD);
         const ticket1 = await ticketing.tickets(3); // Ticket ID 2 est pour l'organisateur de 'Concert B'
         const ticket2 = await ticketing.tickets(4);
 
@@ -132,12 +140,12 @@ describe('Ticketing contract', () => {
 
     it("Should organizer not be able to create another ticket for the same event", async () => {
         await expect(
-            ticketing.createTicket(1, 0) // STANDARD
+            ticketing.createTicket(1, TicketType.STANDARD)
         ).to.be.revertedWith("User already has a ticket for this event.");
     });
 
     it("Should organizer can create VIP ticket for a user", async () => {
-        await ticketing.connect(owner).createTicketFor(1, other.address, 1); // VIP
+        await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
 
         const ticket = await ticketing.tickets(2);
         expect(ticket.owner).to.equal(other.address);
@@ -146,13 +154,13 @@ describe('Ticketing contract', () => {
 
     it("Should non-organizer cannot create tickets for others", async () => {
         await expect(
-            ticketing.connect(other).createTicketFor(1, owner.address, 1)
+            ticketing.connect(other).createTicketFor(1, owner.address, TicketType.VIP)
         ).to.be.revertedWith("Only organizer can create tickets for others.");
     });
 
     it("Cannot create STANDARD ticket via createTicketFor", async () => {
         await expect(
-            ticketing.connect(owner).createTicketFor(1, other.address, 0)
+            ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STANDARD)
         ).to.be.revertedWith("Only VIP or STAFF tickets can be created for others.");
     });
 
@@ -161,5 +169,83 @@ describe('Ticketing contract', () => {
         await expect(
             ticketing.createEvent("Concert C", pastDate)
         ).to.be.revertedWith("End date must be in the future.");
-    })
+    });
+
+    it("Organizer can upgrade STANDARD ticket to VIP", async () => {
+        // GIVEN
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD); // STANDARD ticket
+
+        // WHEN
+        await ticketing.updateTicketType(1, other.address, TicketType.VIP); // VIP
+
+        // THEN
+        const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+        const ticket = await ticketing.tickets(ticketId);
+        expect(ticket.ticketType).to.equal(TicketType.VIP); // VIP
+    });
+
+    it("Organizer can downgrade VIP ticket to STANDARD", async () => {
+        // GIVEN
+        await ticketing.createTicketFor(1, other.address, TicketType.VIP); // VIP ticket
+
+        // WHEN
+        await ticketing.updateTicketType(1, other.address, TicketType.STANDARD); // STANDARD
+
+        // THEN
+        const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+        const ticket = await ticketing.tickets(ticketId);
+        expect(ticket.ticketType).to.equal(TicketType.STANDARD); // STANDARD
+    });
+
+    it("Cannot set newType to ORGANIZER", async () => {
+        // GIVEN
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD); // STANDARD ticket
+
+        // WHEN / THEN
+        await expect(
+            ticketing.updateTicketType(1, other.address, TicketType.ORGANIZER)
+        ).to.be.revertedWith("Invalid ticket type.");
+    });
+
+    it("Non-organizer cannot update ticket type", async () => {
+        // GIVEN
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD); // STANDARD
+
+        // WHEN / THEN
+        await expect(
+            ticketing.connect(other).updateTicketType(1, other.address, TicketType.VIP)
+        ).to.be.revertedWith("Only organizer can update tickets.");
+    });
+
+    it("Cannot modify organizer's ORGANISATION ticket", async () => {
+        // GIVEN
+        const organizerTicketId = await ticketing.ticketIdByEventAndOwner(1, owner.address);
+        const organizerTicket = await ticketing.tickets(organizerTicketId);
+        expect(organizerTicket.ticketType).to.equal(TicketType.ORGANIZER);
+
+        // WHEN / THEN
+        await expect(
+            ticketing.updateTicketType(1, owner.address, TicketType.STANDARD)
+        ).to.be.revertedWith("Cannot modify organizer ticket.");
+    });
+
+    it("Cannot set an invalid ticket type", async () => {
+        // GIVEN
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD); // STANDARD
+
+        // WHEN / THEN
+        await expect(
+            ticketing.updateTicketType(1, other.address, TicketType.UNKNOWN) // type invalide => enum -> uint
+        ).to.be.reverted;
+    });
+
+    it("Emits TicketTypeUpdated event on ticket update", async () => {
+        // GIVEN
+        await ticketing.connect(other).createTicket(1, TicketType.STANDARD); // STANDARD
+
+        // WHEN / THEN
+        await expect(ticketing.updateTicketType(1, other.address, TicketType.VIP)) // upgrade to VIP
+            .to.emit(ticketing, "TicketTypeUpdated")
+            .withArgs(2, other.address, TicketType.STANDARD, TicketType.VIP);
+    });
 });
