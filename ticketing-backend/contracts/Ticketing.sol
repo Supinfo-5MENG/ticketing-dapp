@@ -12,6 +12,7 @@ contract Ticketing {
 
     struct Ticket {
         uint256 id;
+        uint256 eventId;
         address owner;
         bool used;
         TicketType ticketType;
@@ -27,6 +28,7 @@ contract Ticketing {
         uint256 endDate;
         address organizer;
         bool exists; 
+        bool cancelled;
     }
 
     uint256 public eventCount;
@@ -37,6 +39,8 @@ contract Ticketing {
 
     // Events
     event EventCreated(uint256 indexed eventId, string name, address indexed organizer, uint256 endDate);
+    event EventCancelled(uint256 indexed eventId, address indexed organizer);
+
     event TicketCreated(uint256 indexed ticketId, uint256 indexed eventId, address indexed owner, TicketType ticketType);
     event TicketUsed(uint256 indexed ticketId, address indexed owner);
     event TicketTypeUpdated(uint256 indexed ticketId, address indexed user, TicketType oldTypen, TicketType newType);
@@ -54,18 +58,31 @@ contract Ticketing {
 
         events[eventCount] = Event({
             id: eventCount,
+
             name: name,
             endDate: endDate,
             organizer: msg.sender,
-            exists: true
+            exists: true,
+            cancelled: false
         });
 
         _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
         emit EventCreated(eventCount, name, msg.sender, endDate);
     }
 
+    function cancelEvent(uint256 eventId) public {
+        require(events[eventId].exists, "Event does not exist.");
+        require(msg.sender == events[eventId].organizer, "Only organizer can cancel event.");
+        require(!events[eventId].cancelled, "Event already cancelled.");
+
+        events[eventId].cancelled = true;
+
+        emit EventCancelled(eventId, msg.sender);
+    }
+
     function createTicket(uint256 eventId, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
+        require(!events[eventId].cancelled, "Event is cancelled.");
         require(ticketIdByEventAndOwner[eventId][msg.sender] == 0, "User already has a ticket for this event.");
 
         if (ticketType == TicketType.VIP || ticketType == TicketType.STAFF) {
@@ -79,6 +96,7 @@ contract Ticketing {
 
     function createTicketFor(uint256 eventId, address to, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
+        require(!events[eventId].cancelled, "Event is cancelled.");
         require(events[eventId].organizer == msg.sender, "Only organizer can create tickets for others.");
         require(ticketIdByEventAndOwner[eventId][to] == 0, "User already has a ticket for this event.");
         require(ticketType == TicketType.VIP || ticketType == TicketType.STAFF, "Only VIP or STAFF tickets can be created for others.");
@@ -91,6 +109,7 @@ contract Ticketing {
 
         tickets[ticketCount] = Ticket({
             id: ticketCount,
+            eventId: eventId,
             owner: owner,
             used: false,
             ticketType: ticketType
@@ -102,6 +121,7 @@ contract Ticketing {
 
     function updateTicketType(uint256 eventId, address user, TicketType newType) public {
         require(events[eventId].exists, "Event does not exist.");
+        require(!events[eventId].cancelled, "Event is cancelled.");
         require(msg.sender == events[eventId].organizer, "Only organizer can update tickets.");
         require(newType == TicketType.STANDARD || newType == TicketType.VIP || newType == TicketType.STAFF, "Invalid ticket type.");
 
@@ -118,6 +138,7 @@ contract Ticketing {
 
     function resellTicket(uint256 eventId, address to) public {
         require(events[eventId].exists, "Event does not exist.");
+        require(!events[eventId].cancelled, "Event is cancelled.");
         
         uint256 ticketId = ticketIdByEventAndOwner[eventId][msg.sender];
         require(ticketId != 0, "You do not own a ticket for this event.");
@@ -139,12 +160,16 @@ contract Ticketing {
         require(ticket.owner == msg.sender, "Only the ticket owner can use the ticket.");
         require(ticket.used == false, "Ticket has already been used.");
 
+        Event storage ev = events[ticket.eventId];
+        require(!ev.cancelled, "Event is cancelled.");
+
         ticket.used = true;
         emit TicketUsed(ticketId, msg.sender);
     }
 
     function removeTicket(uint256 eventId, address user) public {
         require(events[eventId].exists, "Event does not exist.");
+        require(!events[eventId].cancelled, "Event is cancelled.");
         require(msg.sender == events[eventId].organizer, "Only organizer can remove tickets.");
 
         uint256 ticketId = ticketIdByEventAndOwner[eventId][user];

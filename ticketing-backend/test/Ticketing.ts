@@ -35,7 +35,7 @@ describe('Ticketing contract', () => {
         await ticketing.createEvent("Concert A", futureDate);
     });
 
-    describe('createEvent() suite', () => {
+    describe('createEvent() tests suite', () => {
         it('Should create an event with a future end date', async () => {
             // WHEN
             await ticketing.createEvent("Concert C", futureDate);
@@ -69,6 +69,42 @@ describe('Ticketing contract', () => {
             await expect(ticketing.createEvent("Concert D", futureDate))
                 .to.emit(ticketing, "EventCreated")
                 .withArgs(2, "Concert D", owner.address, futureDate);
+        });
+    });
+
+    describe("cancelEvent() tests suite", () => {
+        it("Should allow organizer to cancel an event", async () => {
+            // WHEN
+            await ticketing.cancelEvent(1);
+
+            // THEN
+            const event = await ticketing.events(1);
+            expect(event.cancelled).to.equal(true);
+        });
+
+        it("Should emit EventCancelled event", async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.cancelEvent(1)
+            ).to.emit(ticketing, "EventCancelled")
+            .withArgs(1, owner.address);
+        });
+
+        it("Should not allow non-organizer to cancel an event", async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).cancelEvent(1)
+            ).to.be.revertedWith("Only organizer can cancel event.");
+        });
+
+        it("Should not allow cancelling an already cancelled event", async () => {
+            // GIVEN
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.cancelEvent(1)
+            ).to.be.revertedWith("Event already cancelled.");
         });
     });
 
@@ -147,6 +183,16 @@ describe('Ticketing contract', () => {
                 .to.emit(ticketing, "TicketCreated")
                 .withArgs(2, 1, other.address, TicketType.STANDARD); // ticketId 2, eventId 1
         });
+
+        it("Should not allow creating a ticket for a cancelled event", async () => {
+            // GIVEN
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).createTicket(1, TicketType.STANDARD)
+            ).to.be.revertedWith("Event is cancelled.");
+        });
     });
 
     describe('createTicketFor() tests suite', () => {
@@ -175,6 +221,16 @@ describe('Ticketing contract', () => {
             await expect(
                 ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STANDARD)
             ).to.be.revertedWith("Only VIP or STAFF tickets can be created for others.");
+        });
+
+        it("Should not allow organizer to create ticket for cancelled event", async () => {
+            // GIVEN
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.createTicketFor(1, other.address, TicketType.VIP)
+            ).to.be.revertedWith("Event is cancelled.");
         });
     });
 
@@ -257,6 +313,17 @@ describe('Ticketing contract', () => {
                 ticketing.updateTicketType(1, other.address, TicketType.UNKNOWN)
             ).to.be.reverted;
         });
+
+        it("Should not allow updating ticket type if event is cancelled", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.updateTicketType(1, other.address, TicketType.VIP)
+            ).to.be.revertedWith("Event is cancelled.");
+        });
     });
 
     describe('resellTicket() tests suite', () => {
@@ -330,6 +397,17 @@ describe('Ticketing contract', () => {
                 ticketing.connect(buyer).resellTicket(1, owner.address)
             ).to.be.revertedWith("You do not own a ticket for this event.");
         });
+
+        it("Should not allow reselling a ticket if event is cancelled", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, owner.address)
+            ).to.be.revertedWith("Event is cancelled.");
+        });
     });
 
     describe('useTicket() tests suite', () => {
@@ -364,6 +442,17 @@ describe('Ticketing contract', () => {
             await expect(ticketing.connect(other).useTicket(2))
                 .to.emit(ticketing, "TicketUsed")
                 .withArgs(2, other.address);
+        });
+
+        it("Should not allow using a ticket if event is cancelled", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).useTicket(2)
+            ).to.be.revertedWith("Event is cancelled.");
         });
     });
 
@@ -432,6 +521,17 @@ describe('Ticketing contract', () => {
             await expect(
                 ticketing.connect(owner).removeTicket(1, other.address)
             ).to.be.revertedWith("User does not have a ticket for this event.");
+        });
+
+        it("Should not allow removing ticket if event is cancelled", async () => {
+            // GIVEN
+            await ticketing.createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.removeTicket(1, other.address)
+            ).to.be.revertedWith("Event is cancelled.");
         });
     });
 });
