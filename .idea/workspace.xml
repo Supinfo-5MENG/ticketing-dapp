@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="dee6dcfd-a3a3-4723-93fb-96c5681ff297" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/ticketing-backend/scripts/deployTicketing.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/CreateEventForm.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/EventCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/EventList.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/Header.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/TicketCard.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/components/TicketList.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ticketing-frontend/providers/Web3Provider.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/contracts/Lock.sol" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/contracts/Ticketing.sol" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hardhat.config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ignition/modules/Lock.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/Lock.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/Ticketing.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="38eVxzXxjR2QZdd9vR3IniFPpl5" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "javascript.preferred.runtime.type.id": "node",
+    "last_opened_file_path": "C:/Users/Xeltax/Documents/GitHub/ticketing-dapp",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "C:\\Users\\Xeltax\\Documents\\GitHub\\ticketing-dapp\\ticketing-frontend\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Xeltax\Documents\GitHub\ticketing-dapp\ticketing-frontend\providers" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.29346.143" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="dee6dcfd-a3a3-4723-93fb-96c5681ff297" name="Changes" comment="" />
+      <created>1769160273405</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769160273405</updated>
+      <workItem from="1769160274488" duration="366000" />
+      <workItem from="1769168819411" duration="878000" />
+      <workItem from="1769169715199" duration="705000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
