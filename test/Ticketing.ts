@@ -7,7 +7,9 @@ describe('Ticketing contract', () => {
     let owner: any;
     let other: any;
 
+    let now: number;
     let futureDate: number;
+    let pastDate: number;
 
     beforeEach(async () => {
         const Ticketing = await ethers.getContractFactory('Ticketing');
@@ -17,9 +19,11 @@ describe('Ticketing contract', () => {
         // Calcul du temps à partir du bloc actuel
         const blockNumberBefore = await ethers.provider.getBlockNumber();
         const blockBefore = await ethers.provider.getBlock(blockNumberBefore);
-        const now = blockBefore?.timestamp!;
+        now = blockBefore?.timestamp!;
         futureDate = now + 3600;
+        pastDate = now - 3600;
 
+        // Créer un événement pour les tests
         await ticketing.createEvent("Concert A", futureDate);
     });
 
@@ -96,9 +100,6 @@ describe('Ticketing contract', () => {
     });
 
     it('Should not create an event with a past end date', async () => {
-        // GIVEN
-        const pastDate = futureDate - 7200;
-
         // WHEN / THEN
         await expect(
             ticketing.createEvent("Concert C", pastDate)
