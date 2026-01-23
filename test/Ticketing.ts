@@ -72,11 +72,17 @@ describe('Ticketing contract', () => {
         ).to.be.revertedWith("User already has a ticket for this event.");
     });
 
-    it("Should not allow creating VIP ticket for now", async () => {
+    it("Should not allow non-organizer to create VIP ticket", async () => {
         // WHEN / THEN
         await expect(
             ticketing.connect(other).createTicket(1, 1) // VIP
-        ).to.be.revertedWith("Only STANDARD tickets are allowed for now.");
+        ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
+    });
+
+    it("Should not allow non-organizer to create STAFF ticket", async () => {
+        await expect(
+            ticketing.connect(other).createTicket(1, 2) // STAFF
+        ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
     });
 
     it('Should user can register to multiple events', async () => {
@@ -124,10 +130,30 @@ describe('Ticketing contract', () => {
         expect(ticket.ticketType).to.equal(3); // ORGANIZER
     });
 
-    it("Organizer should not be able to create another ticket for the same event", async () => {
+    it("Should organizer not be able to create another ticket for the same event", async () => {
         await expect(
             ticketing.createTicket(1, 0) // STANDARD
         ).to.be.revertedWith("User already has a ticket for this event.");
+    });
+
+    it("Should organizer can create VIP ticket for a user", async () => {
+        await ticketing.connect(owner).createTicketFor(1, other.address, 1); // VIP
+
+        const ticket = await ticketing.tickets(2);
+        expect(ticket.owner).to.equal(other.address);
+        expect(ticket.ticketType).to.equal(1);
+    });
+
+    it("Should non-organizer cannot create tickets for others", async () => {
+        await expect(
+            ticketing.connect(other).createTicketFor(1, owner.address, 1)
+        ).to.be.revertedWith("Only organizer can create tickets for others.");
+    });
+
+    it("Cannot create STANDARD ticket via createTicketFor", async () => {
+        await expect(
+            ticketing.connect(owner).createTicketFor(1, other.address, 0)
+        ).to.be.revertedWith("Only VIP or STAFF tickets can be created for others.");
     });
 
     it('Should not create an event with a past end date', async () => {
