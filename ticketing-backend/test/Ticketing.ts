@@ -104,7 +104,7 @@ describe('Ticketing contract', () => {
             // WHEN / THEN
             await expect(
                 ticketing.cancelEvent(1)
-            ).to.be.revertedWith("Event already cancelled.");
+            ).to.be.revertedWith("Event is cancelled.");
         });
     });
 
