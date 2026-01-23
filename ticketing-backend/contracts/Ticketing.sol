@@ -29,6 +29,7 @@ contract Ticketing {
         bool exists; 
         bool cancelled;
         string name;
+        string metadataURI;
     }
 
     uint256 public eventCount;
@@ -38,7 +39,8 @@ contract Ticketing {
     mapping(uint256 => mapping(address => uint256)) public ticketIdByEventAndOwner;
 
     // Events
-    event EventCreated(uint256 indexed eventId, string name, address indexed organizer, uint256 endDate);
+    event EventCreated(uint256 indexed eventId, string name, address indexed organizer, uint256 endDate, string metadataUri);
+    event EventMetadataUpdated(uint256 indexed eventId, string metadataURI);
     event EventCancelled(uint256 indexed eventId, address indexed organizer);
 
     event TicketCreated(uint256 indexed ticketId, uint256 indexed eventId, address indexed owner, TicketType ticketType);
@@ -52,22 +54,31 @@ contract Ticketing {
         eventCount = 0;
     }
 
-    function createEvent(string memory name, uint256 endDate) public {
+    function createEvent(string memory name, uint256 endDate, string memory metadataURI) public {
         require(endDate > block.timestamp, "End date must be in the future.");
         eventCount += 1;
 
         events[eventCount] = Event({
             id: eventCount,
-
             name: name,
             endDate: endDate,
             organizer: msg.sender,
             exists: true,
-            cancelled: false
+            cancelled: false,
+            metadataURI: metadataURI
         });
 
         _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
-        emit EventCreated(eventCount, name, msg.sender, endDate);
+        emit EventCreated(eventCount, name, msg.sender, endDate, metadataURI);
+    }
+
+    function updateEventMetadata(uint256 eventId, string memory newMetadataURI) public {
+        _requireActiveEvent(eventId);
+        require(msg.sender == events[eventId].organizer, "Only organizer can update metadata.");
+        require(block.timestamp < events[eventId].endDate, "Event has already ended.");
+
+        events[eventId].metadataURI = newMetadataURI;
+        emit EventMetadataUpdated(eventId, newMetadataURI);
     }
 
     function cancelEvent(uint256 eventId) public {

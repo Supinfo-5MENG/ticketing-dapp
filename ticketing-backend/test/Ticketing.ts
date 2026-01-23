@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { assert, expect } from 'chai';
 import { ethers } from "hardhat";
 import { Ticketing } from '../typechain-types';
 
@@ -19,6 +19,9 @@ describe('Ticketing contract', () => {
     let futureDate: number;
     let pastDate: number;
 
+    const initialMetadata = "ipfs://initialmetadatahash";
+    const updatedMetadata = "ipfs://updatedmetadatahash";
+
     beforeEach(async () => {
         const Ticketing = await ethers.getContractFactory('Ticketing');
         ticketing = await Ticketing.deploy();
@@ -32,13 +35,13 @@ describe('Ticketing contract', () => {
         pastDate = now - 3600;
 
         // Créer un événement pour les tests
-        await ticketing.createEvent("Concert A", futureDate);
+        await ticketing.createEvent("Concert A", futureDate, initialMetadata);
     });
 
     describe('createEvent() tests suite', () => {
         it('Should create an event with a future end date', async () => {
             // WHEN
-            await ticketing.createEvent("Concert C", futureDate);
+            await ticketing.createEvent("Concert C", futureDate, initialMetadata);
             const event = await ticketing.events(2);
             
             // THEN
@@ -52,7 +55,7 @@ describe('Ticketing contract', () => {
         it('Should not create an event with a past end date', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.createEvent("Concert C", pastDate)
+                ticketing.createEvent("Concert C", pastDate, initialMetadata)
             ).to.be.revertedWith("End date must be in the future.");
         });
 
@@ -66,9 +69,52 @@ describe('Ticketing contract', () => {
 
         it("Should emit EventCreated when creating an event", async () => {
             // WHEN / THEN
-            await expect(ticketing.createEvent("Concert D", futureDate))
+            await expect(ticketing.createEvent("Concert D", futureDate, initialMetadata))
                 .to.emit(ticketing, "EventCreated")
-                .withArgs(2, "Concert D", owner.address, futureDate);
+                .withArgs(2, "Concert D", owner.address, futureDate, initialMetadata);
+        });
+    });
+
+    describe('Event metadata', () => {
+        it('Should allow organizer to update metadata before event ends', async () => {
+            // VERIFY STATE
+            expect((await ticketing.events(1)).metadataURI).to.equal(initialMetadata);
+
+            // WHEN
+            await ticketing.updateEventMetadata(1, updatedMetadata);
+
+            // THEN
+            const event = await ticketing.events(1);
+            expect(event.metadataURI).to.equal(updatedMetadata);
+        });
+
+        it('Should not allow non-organizer to update metadata', async () => {
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).updateEventMetadata(1, initialMetadata)
+            ).to.be.revertedWith("Only organizer can update metadata.");
+        });
+
+        it('Should not allow update after event is cancelled', async () => {
+            // GIVEN
+            await ticketing.cancelEvent(1);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.updateEventMetadata(1, initialMetadata)
+            ).to.be.revertedWith("Event is cancelled.");
+        });
+
+        it('Should not allow update after event end date', async () => {
+            // GIVEN
+            // Simuler le passage du temps
+            await ethers.provider.send("evm_setNextBlockTimestamp", [futureDate + 1]);
+            await ethers.provider.send("evm_mine");
+
+            // WHEN / THEN
+            await expect(
+                ticketing.updateEventMetadata(1, initialMetadata)
+            ).to.be.revertedWith("Event has already ended.");
         });
     });
 
@@ -149,7 +195,7 @@ describe('Ticketing contract', () => {
 
         it('Should user can register to multiple events', async () => {
             // GIVEN
-            await ticketing.createEvent("Concert B", futureDate);
+            await ticketing.createEvent("Concert B", futureDate, initialMetadata);
 
             // WHEN
             await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
