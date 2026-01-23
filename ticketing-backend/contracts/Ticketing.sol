@@ -3,10 +3,18 @@ pragma solidity ^0.8.28;
 
 contract Ticketing {
     // Tickets
+    enum TicketType {
+        STANDARD,
+        VIP,
+        STAFF,
+        ORGANIZER
+    }
+
     struct Ticket {
         uint256 id;
         address owner;
         bool used;
+        TicketType ticketType;
     }
 
     uint256 public ticketCount;
@@ -16,6 +24,8 @@ contract Ticketing {
     struct Event {
         uint256 id;
         string name;
+        uint256 endDate;
+        address organizer;
         bool exists; 
     }
 
@@ -30,28 +40,54 @@ contract Ticketing {
         eventCount = 0;
     }
 
-    function createEvent(string memory name) public {
+    function createEvent(string memory name, uint256 endDate) public {
+        require(endDate > block.timestamp, "End date must be in the future.");
         eventCount += 1;
 
         events[eventCount] = Event({
             id: eventCount,
             name: name,
+            endDate: endDate,
+            organizer: msg.sender,
             exists: true
         });
+
+        _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
     }
 
-    function createTicket(uint256 eventId) public {
+    function createTicket(uint256 eventId, TicketType ticketType) public {
         require(events[eventId].exists, "Event does not exist.");
         require(hasTicketForEvent[eventId][msg.sender] == false, "User already has a ticket for this event.");
 
+        if (ticketType == TicketType.VIP || ticketType == TicketType.STAFF) {
+            require(msg.sender == events[eventId].organizer, "Only the event organizer can create VIP or STAFF tickets.");
+        } else if (ticketType != TicketType.STANDARD) {
+            revert("Invalid ticket type.");
+        }
+
+        _createTicket(eventId, msg.sender, ticketType);
+    }
+
+    function createTicketFor(uint256 eventId, address to, TicketType ticketType) public {
+        require(events[eventId].exists, "Event does not exist.");
+        require(events[eventId].organizer == msg.sender, "Only organizer can create tickets for others.");
+        require(hasTicketForEvent[eventId][to] == false, "User already has a ticket for this event.");
+        require(ticketType == TicketType.VIP || ticketType == TicketType.STAFF, "Only VIP or STAFF tickets can be created for others.");
+
+        _createTicket(eventId, to, ticketType);
+    }
+
+    function _createTicket(uint256 eventId, address owner, TicketType ticketType) private {
         ticketCount += 1;
 
         tickets[ticketCount] = Ticket({
             id: ticketCount,
-            owner: msg.sender,
-            used: false
+            owner: owner,
+            used: false,
+            ticketType: ticketType
         });
-        hasTicketForEvent[eventId][msg.sender] = true;
+
+        hasTicketForEvent[eventId][owner] = true;
     }
 
     function useTicket(uint256 ticketId) public {
