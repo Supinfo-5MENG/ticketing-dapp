@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-contract Ticketing {
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
+contract Ticketing is ERC721 {
     // Tickets
     enum TicketType {
         STANDARD,
@@ -49,7 +51,7 @@ contract Ticketing {
     event TicketResold(uint256 indexed ticketId, uint256 indexed eventId, address from, address to);
     event TicketRemoved(uint256 indexed ticketId, uint256 indexed eventId, address owner, TicketType ticketType);
 
-    constructor() {
+    constructor() ERC721("EventTicket", "ETKT") {
         ticketCount = 0;
         eventCount = 0;
     }
@@ -129,6 +131,8 @@ contract Ticketing {
         });
 
         ticketIdByEventAndOwner[eventId][owner] = ticketCount;
+        _safeMint(owner, ticketCount);
+
         emit TicketCreated(ticketCount, eventId, owner, ticketType);
     }
 

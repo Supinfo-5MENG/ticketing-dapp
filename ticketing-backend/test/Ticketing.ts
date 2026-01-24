@@ -580,4 +580,31 @@ describe('Ticketing contract', () => {
             ).to.be.revertedWith("Event is cancelled.");
         });
     });
+
+    describe("NFT minting", () => {
+        it("Should mint an NFT when a ticket is created", async () => {
+            // GIVEN
+            await ticketing.createEvent("My Event", futureDate, initialMetadata);
+
+            // WHEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // THEN
+            expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
+        });
+
+        it("Should use ticketId as tokenId", async () => {
+            // GIVEN
+            await ticketing.createEvent("My Event", futureDate, initialMetadata);
+
+            // WHEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+
+            // THEN
+            const ticket = await ticketing.tickets(1);
+            expect(ticket.id).to.equal(1);
+            expect(await ticketing.ownerOf(1)).to.equal(ticket.owner);
+        });
+    });
 });
