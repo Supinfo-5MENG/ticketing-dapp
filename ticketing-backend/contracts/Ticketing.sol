@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
-contract Ticketing is ERC721 {
+contract Ticketing is ERC721URIStorage {
+    using Strings for uint256;
 
     bool private _isResellInProgress;
 
@@ -72,7 +73,8 @@ contract Ticketing is ERC721 {
             metadataURI: metadataURI
         });
 
-        _createTicket(eventCount, msg.sender, TicketType.ORGANIZER);
+        string memory organizerTicketURI = string.concat("organizer-", eventCount.toString(), ".json");
+        _createTicket(eventCount, msg.sender, TicketType.ORGANIZER, organizerTicketURI);
         emit EventCreated(eventCount, name, msg.sender, endDate, metadataURI);
     }
 
@@ -99,7 +101,7 @@ contract Ticketing is ERC721 {
         require(!events[eventId].cancelled, "Event is cancelled.");
     }
 
-    function createTicket(uint256 eventId, TicketType ticketType) public {
+    function createTicket(uint256 eventId, TicketType ticketType, string memory ticketURI) public {
         _requireActiveEvent(eventId);
         require(ticketIdByEventAndOwner[eventId][msg.sender] == 0, "User already has a ticket for this event.");
 
@@ -109,19 +111,19 @@ contract Ticketing is ERC721 {
             revert("Invalid ticket type.");
         }
 
-        _createTicket(eventId, msg.sender, ticketType);
+        _createTicket(eventId, msg.sender, ticketType, ticketURI);
     }
 
-    function createTicketFor(uint256 eventId, address to, TicketType ticketType) public {
+    function createTicketFor(uint256 eventId, address to, TicketType ticketType, string memory ticketURI) public {
         _requireActiveEvent(eventId);
         require(events[eventId].organizer == msg.sender, "Only organizer can create tickets for others.");
         require(ticketIdByEventAndOwner[eventId][to] == 0, "User already has a ticket for this event.");
         require(ticketType == TicketType.VIP || ticketType == TicketType.STAFF, "Only VIP or STAFF tickets can be created for others.");
 
-        _createTicket(eventId, to, ticketType);
+        _createTicket(eventId, to, ticketType, ticketURI);
     }
 
-    function _createTicket(uint256 eventId, address owner, TicketType ticketType) private {
+    function _createTicket(uint256 eventId, address owner, TicketType ticketType, string memory ticketURI) private {
         ticketCount += 1;
 
         tickets[ticketCount] = Ticket({
@@ -133,6 +135,7 @@ contract Ticketing is ERC721 {
 
         ticketIdByEventAndOwner[eventId][owner] = ticketCount;
         _safeMint(owner, ticketCount);
+        _setTokenURI(ticketCount, ticketURI);
 
         emit TicketCreated(ticketCount, eventId, owner, ticketType);
     }

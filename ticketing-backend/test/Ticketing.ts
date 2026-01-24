@@ -22,6 +22,10 @@ describe('Ticketing contract', () => {
     const initialMetadata = "ipfs://initialmetadatahash";
     const updatedMetadata = "ipfs://updatedmetadatahash";
 
+    const ticketURIStandard = "ipfs://standardtickethash";
+    const ticketURIVIP = "ipfs://viptickethash";
+    const ticketURIStaff = "ipfs://stafftickethash";
+
     beforeEach(async () => {
         const Ticketing = await ethers.getContractFactory('Ticketing');
         ticketing = await Ticketing.deploy();
@@ -50,6 +54,8 @@ describe('Ticketing contract', () => {
             expect(event.endDate).to.equal(futureDate);
             expect(event.organizer).to.equal(owner.address);
             expect(event.exists).to.equal(true);
+            const organizerTicketId = await ticketing.ticketIdByEventAndOwner(2, owner.address);
+            expect(await ticketing.tokenURI(organizerTicketId)).to.equal("organizer-2.json");
         });
 
         it('Should not create an event with a past end date', async () => {
@@ -65,6 +71,8 @@ describe('Ticketing contract', () => {
 
             // THEN
             expect(event.organizer).to.equal(owner.address);
+            const organizerTicketId = await ticketing.ticketIdByEventAndOwner(1, owner.address);
+            expect(await ticketing.tokenURI(organizerTicketId)).to.equal("organizer-1.json");
         });
 
         it("Should emit EventCreated when creating an event", async () => {
@@ -156,40 +164,42 @@ describe('Ticketing contract', () => {
 
     describe('createTicket() tests suite', () => {
         it('Should create a ticket and assign it to the caller', async () => {
-            // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
-
             // WHEN
-            const ticket = await ticketing.tickets(2); // Ticket 1 = ORGANIZER
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const ticket = await ticketing.tickets(2); // ticketId 2 = STANDARD
 
             // THEN
             expect(ticket.id).to.equal(2);
             expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
+            expect(await ticketing.tokenURI(ticket.id)).to.equal(ticketURIStandard);
         });
 
         it('Should create an ORGANIZER ticket for the event creator', async () => {
             // GIVEN
-            const ticket = await ticketing.tickets(1);
+            const ticket = await ticketing.tickets(1); // ticketId 1 = ORGANIZER
 
             // THEN
             expect(await ticketing.ownerOf(ticket.id)).to.equal(owner.address);
             expect(ticket.ticketType).to.equal(TicketType.ORGANIZER);
+
+            // THEN : Vérification tokenURI
+            expect(await ticketing.tokenURI(ticket.id)).to.equal("organizer-1.json");
         });
 
         it('Should organizer not be able to create another ticket for the same event', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.createTicket(1, TicketType.STANDARD)
+                ticketing.createTicket(1, TicketType.STANDARD, ticketURIStandard)
             ).to.be.revertedWith("User already has a ticket for this event.");
         });
 
         it('Should user can register once per event', async () => {
             // WHEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // THEN
             await expect(
-                ticketing.connect(other).createTicket(1, TicketType.STANDARD)
+                ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard)
             ).to.be.revertedWith("User already has a ticket for this event.");
         });
 
@@ -198,8 +208,8 @@ describe('Ticketing contract', () => {
             await ticketing.createEvent("Concert B", futureDate, initialMetadata);
 
             // WHEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
-            await ticketing.connect(other).createTicket(2, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            await ticketing.connect(other).createTicket(2, TicketType.STANDARD, ticketURIStandard);
 
             const ticket1 = await ticketing.tickets(3);
             const ticket2 = await ticketing.tickets(4);
@@ -212,20 +222,20 @@ describe('Ticketing contract', () => {
         it('Should not allow non-organizer to create VIP ticket', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.connect(other).createTicket(1, TicketType.VIP)
+                ticketing.connect(other).createTicket(1, TicketType.VIP, ticketURIVIP)
             ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
         });
 
         it('Should not allow non-organizer to create STAFF ticket', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.connect(other).createTicket(1, TicketType.STAFF)
+                ticketing.connect(other).createTicket(1, TicketType.STAFF, ticketURIStaff)
             ).to.be.revertedWith("Only the event organizer can create VIP or STAFF tickets.");
         });
 
         it("Should emit TicketCreated when a user buys a STANDARD ticket", async () => {
             // WHEN / THEN
-            await expect(ticketing.connect(other).createTicket(1, TicketType.STANDARD))
+            await expect(ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard))
                 .to.emit(ticketing, "TicketCreated")
                 .withArgs(2, 1, other.address, TicketType.STANDARD); // ticketId 2, eventId 1
         });
@@ -236,7 +246,7 @@ describe('Ticketing contract', () => {
 
             // WHEN / THEN
             await expect(
-                ticketing.connect(other).createTicket(1, TicketType.STANDARD)
+                ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard)
             ).to.be.revertedWith("Event is cancelled.");
         });
     });
@@ -244,7 +254,7 @@ describe('Ticketing contract', () => {
     describe('createTicketFor() tests suite', () => {
         it('Should organizer can create VIP ticket for a user', async () => {
             // WHEN / THEN
-            await expect(ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP))
+            await expect(ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP))
                 .to.emit(ticketing, "TicketCreated")
                 .withArgs(2, 1, other.address, TicketType.VIP);
 
@@ -252,20 +262,20 @@ describe('Ticketing contract', () => {
             const ticket = await ticketing.tickets(2);
             expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
             expect(ticket.ticketType).to.equal(TicketType.VIP);
-
+            expect(await ticketing.tokenURI(ticket.id)).to.equal(ticketURIVIP);
         });
 
         it('Should non-organizer cannot create tickets for others', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.connect(other).createTicketFor(1, owner.address, TicketType.VIP)
+                ticketing.connect(other).createTicketFor(1, owner.address, TicketType.VIP, ticketURIVIP)
             ).to.be.revertedWith("Only organizer can create tickets for others.");
         });
 
         it('Cannot create STANDARD ticket via createTicketFor', async () => {
             // WHEN / THEN
             await expect(
-                ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STANDARD)
+                ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STANDARD, ticketURIStandard)
             ).to.be.revertedWith("Only VIP or STAFF tickets can be created for others.");
         });
 
@@ -275,7 +285,7 @@ describe('Ticketing contract', () => {
 
             // WHEN / THEN
             await expect(
-                ticketing.createTicketFor(1, other.address, TicketType.VIP)
+                ticketing.createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP)
             ).to.be.revertedWith("Event is cancelled.");
         });
     });
@@ -283,7 +293,7 @@ describe('Ticketing contract', () => {
     describe('updateTicketType() tests suite', () => {
         it("Should organizer can upgrade STANDARD ticket to VIP", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN
             await ticketing.updateTicketType(1, other.address, TicketType.VIP);
@@ -296,7 +306,7 @@ describe('Ticketing contract', () => {
 
         it("Should organizer can downgrade VIP ticket to STANDARD", async () => {
             // GIVEN
-            await ticketing.createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
 
             // WHEN
             await ticketing.updateTicketType(1, other.address, TicketType.STANDARD);
@@ -309,7 +319,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow setting newType to ORGANIZER", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -319,7 +329,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow non-organizer to update ticket type", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -341,7 +351,7 @@ describe('Ticketing contract', () => {
 
         it("Should emit TicketTypeUpdated event on ticket update", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -352,7 +362,7 @@ describe('Ticketing contract', () => {
 
         it("Should revert when passing invalid ticket type (unknown)", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -362,7 +372,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow updating ticket type if event is cancelled", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             await ticketing.cancelEvent(1);
 
             // WHEN / THEN
@@ -381,7 +391,7 @@ describe('Ticketing contract', () => {
 
         it('Should allow a user to resell a STANDARD ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
 
             // WHEN / THEN
@@ -398,7 +408,7 @@ describe('Ticketing contract', () => {
 
         it('Should not allow reselling VIP ticket', async () => {
             // GIVEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
 
             // WHEN / THEN
             await expect(
@@ -408,7 +418,7 @@ describe('Ticketing contract', () => {
 
         it('Should not allow reselling STAFF ticket', async () => {
             // GIVEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF);
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF, ticketURIStaff);
 
             // WHEN / THEN
             await expect(
@@ -418,8 +428,8 @@ describe('Ticketing contract', () => {
 
         it('Should not allow reselling to someone who already has a ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
-            await ticketing.connect(buyer).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            await ticketing.connect(buyer).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -436,7 +446,7 @@ describe('Ticketing contract', () => {
 
         it('Should not allow reselling a ticket the caller does not own', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -446,7 +456,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow reselling a ticket if event is cancelled", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             await ticketing.cancelEvent(1);
 
             // WHEN / THEN
@@ -459,7 +469,7 @@ describe('Ticketing contract', () => {
     describe('useTicket() tests suite', () => {
         it('Should owner can use their ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN
             await ticketing.connect(other).useTicket(2);
@@ -472,7 +482,7 @@ describe('Ticketing contract', () => {
 
         it('Should non owner cannot use someone else\'s ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -482,7 +492,7 @@ describe('Ticketing contract', () => {
 
         it("Should emit TicketUsed when a ticket is used", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             
             // WHEN / THEN
             await expect(ticketing.connect(other).useTicket(2))
@@ -492,7 +502,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow using a ticket if event is cancelled", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             await ticketing.cancelEvent(1);
 
             // WHEN / THEN
@@ -505,7 +515,7 @@ describe('Ticketing contract', () => {
     describe('RemoveTicket() tests suite', () => {
         it('Should allow organizer to remove VIP ticket', async () => {
             // GIVEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
 
             // WHEN / THEN
@@ -520,7 +530,7 @@ describe('Ticketing contract', () => {
 
         it('Should allow organizer to remove STAFF ticket', async () => {
             // GIVEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF);
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.STAFF, ticketURIStaff);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
 
             // WHEN / THEN
@@ -535,7 +545,7 @@ describe('Ticketing contract', () => {
 
         it('Should not allow removing STANDARD ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN / THEN
             await expect(
@@ -545,7 +555,7 @@ describe('Ticketing contract', () => {
 
         it('Should not allow non-organizer to remove a ticket', async () => {
             // GIVEN
-            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.connect(owner).createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
 
             // WHEN / THEN
             await expect(
@@ -569,7 +579,7 @@ describe('Ticketing contract', () => {
 
         it("Should not allow removing ticket if event is cancelled", async () => {
             // GIVEN
-            await ticketing.createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
             await ticketing.cancelEvent(1);
 
             // WHEN / THEN
@@ -580,16 +590,34 @@ describe('Ticketing contract', () => {
     });
 
     describe("NFT minting", () => {
+        it("Should mint an NFT with correct tokenURI when a ticket is created", async () => {
+            // GIVEN
+            await ticketing.createEvent("My Event", futureDate, initialMetadata);
+
+            // WHEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, "ipfs://standard-1.json");
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // THEN
+            expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
+            expect(await ticketing.tokenURI(ticketId)).to.equal("ipfs://standard-1.json");
+
+            // THEN : Vérification ticket ORGANIZER
+            const organizerTicketId = await ticketing.ticketIdByEventAndOwner(1, owner.address);
+            expect(await ticketing.tokenURI(organizerTicketId)).to.equal("organizer-1.json");
+        });
+
         it("Should mint an NFT when a ticket is created", async () => {
             // GIVEN
             await ticketing.createEvent("My Event", futureDate, initialMetadata);
 
             // WHEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
 
             // THEN
             expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
+            expect(await ticketing.tokenURI(ticketId)).to.equal(ticketURIStandard);
         });
 
         it("Should use ticketId as tokenId", async () => {
@@ -597,13 +625,14 @@ describe('Ticketing contract', () => {
             await ticketing.createEvent("My Event", futureDate, initialMetadata);
 
             // WHEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
             const ticket = await ticketing.tickets(ticketId);
 
             // THEN
             expect(ticket.id).to.equal(ticketId);
             expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
+            expect(await ticketing.tokenURI(ticketId)).to.equal(ticketURIStandard);
         });
     });
 
@@ -617,7 +646,7 @@ describe('Ticketing contract', () => {
 
         it("Should prevent direct ERC721 transfer", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
 
             // WHEN / THEN
@@ -628,7 +657,7 @@ describe('Ticketing contract', () => {
 
         it("Should allow resale via resellTicket", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // WHEN
             await ticketing.connect(other).resellTicket(1, receiver.address);
@@ -640,7 +669,7 @@ describe('Ticketing contract', () => {
 
         it("Should prevent resale of VIP ticket", async () => {
             // GIVEN
-            await ticketing.createTicketFor(1, other.address, TicketType.VIP);
+            await ticketing.createTicketFor(1, other.address, TicketType.VIP, ticketURIVIP);
 
             // WHEN / THEN
             await expect(
@@ -650,7 +679,7 @@ describe('Ticketing contract', () => {
 
         it("Should revert resale if recipient already has a ticket", async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
 
             // THEN
             await expect(
