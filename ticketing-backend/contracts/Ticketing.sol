@@ -15,7 +15,6 @@ contract Ticketing is ERC721 {
     struct Ticket {
         uint256 id;
         uint256 eventId;
-        address owner;
         bool used;
         TicketType ticketType;
     }
@@ -125,7 +124,6 @@ contract Ticketing is ERC721 {
         tickets[ticketCount] = Ticket({
             id: ticketCount,
             eventId: eventId,
-            owner: owner,
             used: false,
             ticketType: ticketType
         });
@@ -164,7 +162,7 @@ contract Ticketing is ERC721 {
 
         ticketIdByEventAndOwner[eventId][to] = ticketId;
         ticketIdByEventAndOwner[eventId][msg.sender] = 0;
-        ticket.owner = to;
+        _transfer(msg.sender, to, ticketId);
 
         emit TicketResold(ticketId, eventId, msg.sender, to);
     }
@@ -172,7 +170,7 @@ contract Ticketing is ERC721 {
     function useTicket(uint256 ticketId) public {
         Ticket storage ticket = tickets[ticketId];
 
-        require(ticket.owner == msg.sender, "Only the ticket owner can use the ticket.");
+        require(ownerOf(ticketId) == msg.sender, "Only the ticket owner can use the ticket.");
         require(ticket.used == false, "Ticket has already been used.");
 
         Event storage ev = events[ticket.eventId];
@@ -194,6 +192,7 @@ contract Ticketing is ERC721 {
 
         ticketIdByEventAndOwner[eventId][user] = 0;
         TicketType ticketType = ticket.ticketType;
+        _burn(ticketId);
         delete tickets[ticketId];
 
         emit TicketRemoved(ticketId, eventId, user, ticketType);

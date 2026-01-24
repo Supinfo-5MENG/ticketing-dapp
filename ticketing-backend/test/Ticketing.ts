@@ -164,7 +164,7 @@ describe('Ticketing contract', () => {
 
             // THEN
             expect(ticket.id).to.equal(2);
-            expect(ticket.owner).to.equal(other.address);
+            expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
         });
 
         it('Should create an ORGANIZER ticket for the event creator', async () => {
@@ -172,7 +172,7 @@ describe('Ticketing contract', () => {
             const ticket = await ticketing.tickets(1);
 
             // THEN
-            expect(ticket.owner).to.equal(owner.address);
+            expect(await ticketing.ownerOf(ticket.id)).to.equal(owner.address);
             expect(ticket.ticketType).to.equal(TicketType.ORGANIZER);
         });
 
@@ -205,8 +205,8 @@ describe('Ticketing contract', () => {
             const ticket2 = await ticketing.tickets(4);
 
             // THEN
-            expect(ticket1.owner).to.equal(other.address);
-            expect(ticket2.owner).to.equal(other.address);
+            expect(await ticketing.ownerOf(ticket1.id)).to.equal(other.address);
+            expect(await ticketing.ownerOf(ticket2.id)).to.equal(other.address);
         });
 
         it('Should not allow non-organizer to create VIP ticket', async () => {
@@ -250,7 +250,7 @@ describe('Ticketing contract', () => {
 
             // THEN
             const ticket = await ticketing.tickets(2);
-            expect(ticket.owner).to.equal(other.address);
+            expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
             expect(ticket.ticketType).to.equal(TicketType.VIP);
 
         });
@@ -391,7 +391,7 @@ describe('Ticketing contract', () => {
 
             // THEN
             const ticket = await ticketing.tickets(ticketId);
-            expect(ticket.owner).to.equal(buyer.address);
+            expect(await ticketing.ownerOf(ticket.id)).to.equal(buyer.address);
             expect(await ticketing.ticketIdByEventAndOwner(1, buyer.address)).to.equal(ticketId);
             expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
         });
@@ -467,7 +467,7 @@ describe('Ticketing contract', () => {
 
             // THEN
             expect(ticket.used).to.equal(true);
-            expect(ticket.owner).to.equal(other.address);
+            expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
         });
 
         it('Should non owner cannot use someone else\'s ticket', async () => {
@@ -514,8 +514,7 @@ describe('Ticketing contract', () => {
                 .withArgs(ticketId, 1, other.address, TicketType.VIP);
 
             // THEN
-            const ticketAfter = await ticketing.tickets(ticketId);
-            expect(ticketAfter.owner).to.equal(ethers.ZeroAddress); // ticket supprimé
+            await expect(ticketing.ownerOf(ticketId)).to.be.reverted;   // ticket supprimé
             expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
         });
 
@@ -530,8 +529,7 @@ describe('Ticketing contract', () => {
                 .withArgs(ticketId, 1, other.address, TicketType.STAFF);
 
             // THEN
-            const ticketAfter = await ticketing.tickets(ticketId);
-            expect(ticketAfter.owner).to.equal(ethers.ZeroAddress); // ticket supprimé
+            await expect(ticketing.ownerOf(ticketId)).to.be.reverted;   // ticket supprimé
             expect(await ticketing.ticketIdByEventAndOwner(1, other.address)).to.equal(0);
         });
 
@@ -600,11 +598,12 @@ describe('Ticketing contract', () => {
 
             // WHEN
             await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+            const ticket = await ticketing.tickets(ticketId);
 
             // THEN
-            const ticket = await ticketing.tickets(1);
-            expect(ticket.id).to.equal(1);
-            expect(await ticketing.ownerOf(1)).to.equal(ticket.owner);
+            expect(ticket.id).to.equal(ticketId);
+            expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
         });
     });
 });
