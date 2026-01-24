@@ -466,49 +466,175 @@ describe('Ticketing contract', () => {
         });
     });
 
-    describe('useTicket() tests suite', () => {
-        it('Should owner can use their ticket', async () => {
+    describe('scanTicket() tests suite', () => {
+        let staff: any;
+        let user: any;
+
+        beforeEach(async () => {
+            [, , staff, user] = await ethers.getSigners();
+        });
+
+        it('Should organizer can scan their own ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const organizerTicketId = await ticketing.ticketIdByEventAndOwner(1, owner.address);
 
             // WHEN
-            await ticketing.connect(other).useTicket(2);
-            const ticket = await ticketing.tickets(2);
+            await ticketing.connect(owner).scanTicket(organizerTicketId);
+            const ticket = await ticketing.tickets(organizerTicketId);
 
             // THEN
             expect(ticket.used).to.equal(true);
-            expect(await ticketing.ownerOf(ticket.id)).to.equal(other.address);
         });
 
-        it('Should non owner cannot use someone else\'s ticket', async () => {
+        it('Should organizer can scan a STANDARD user ticket', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
+            // WHEN
+            await ticketing.connect(owner).scanTicket(userTicketId);
+            const ticket = await ticketing.tickets(userTicketId);
+
+            // THEN
+            expect(ticket.used).to.equal(true);
+        });
+
+        it('Should organizer can scan a STAFF ticket', async () => {
+            // GIVEN
+            await ticketing.createTicketFor(1, staff.address, TicketType.STAFF, ticketURIStaff);
+            const staffTicketId = await ticketing.ticketIdByEventAndOwner(1, staff.address);
+
+            // WHEN
+            await ticketing.connect(owner).scanTicket(staffTicketId);
+            const ticket = await ticketing.tickets(staffTicketId);
+
+            // THEN
+            expect(ticket.used).to.equal(true);
+        });
+
+        it('Should STAFF cannot scan before being scanned', async () => {
+            // GIVEN
+            await ticketing.createTicketFor(1, staff.address, TicketType.STAFF, ticketURIStaff);
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
 
             // WHEN / THEN
             await expect(
-                ticketing.connect(owner).useTicket(2)
-            ).to.be.revertedWith("Only the ticket owner can use the ticket.");
+                ticketing.connect(staff).scanTicket(userTicketId)
+            ).to.be.revertedWith("STAFF must be scanned before scanning others.");
         });
 
-        it("Should emit TicketUsed when a ticket is used", async () => {
+        it('Should STAFF can scan after being scanned by organizer', async () => {
             // GIVEN
-            await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
-            
+            await ticketing.createTicketFor(1, staff.address, TicketType.STAFF, ticketURIStaff);
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+
+            const staffTicketId = await ticketing.ticketIdByEventAndOwner(1, staff.address);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
+            // Organizer scans STAFF
+            await ticketing.connect(owner).scanTicket(staffTicketId);
+
+            // WHEN
+            await ticketing.connect(staff).scanTicket(userTicketId);
+            const ticket = await ticketing.tickets(userTicketId);
+
+            // THEN
+            expect(ticket.used).to.equal(true);
+        });
+
+        it('Should STAFF can scan another STAFF after being scanned', async () => {
+            // GIVEN
+            const staff2 = (await ethers.getSigners())[4];
+
+            await ticketing.createTicketFor(1, staff.address, TicketType.STAFF, ticketURIStaff);
+            await ticketing.createTicketFor(1, staff2.address, TicketType.STAFF, ticketURIStaff);
+
+            const staffTicketId = await ticketing.ticketIdByEventAndOwner(1, staff.address);
+            const staff2TicketId = await ticketing.ticketIdByEventAndOwner(1, staff2.address);
+
+            // Organizer scans first STAFF
+            await ticketing.connect(owner).scanTicket(staffTicketId);
+
+            // WHEN
+            await ticketing.connect(staff).scanTicket(staff2TicketId);
+            const ticket = await ticketing.tickets(staff2TicketId);
+
+            // THEN
+            expect(ticket.used).to.equal(true);
+        });
+
+        it('Should ticket owner cannot scan their own ticket if not organizer', async () => {
+            // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
             // WHEN / THEN
-            await expect(ticketing.connect(other).useTicket(2))
-                .to.emit(ticketing, "TicketUsed")
-                .withArgs(2, other.address);
+            await expect(
+                ticketing.connect(user).scanTicket(userTicketId)
+            ).to.be.revertedWith("Ticket owner cannot scan their own ticket.");
         });
 
-        it("Should not allow using a ticket if event is cancelled", async () => {
+        it('Should user without STAFF or ORGANIZER ticket cannot scan', async () => {
             // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
             await ticketing.connect(other).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+
+            const otherTicketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(user).scanTicket(otherTicketId)
+            ).to.be.revertedWith("Only STAFF or ORGANIZER can scan tickets.");
+        });
+
+        it('Should revert if scanner does not have a ticket for the event', async () => {
+            // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).scanTicket(userTicketId)
+            ).to.be.revertedWith("Scanner does not have a ticket for this event.");
+        });
+
+        it('Should not allow scanning an already used ticket', async () => {
+            // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
+            await ticketing.connect(owner).scanTicket(userTicketId);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(owner).scanTicket(userTicketId)
+            ).to.be.revertedWith("Ticket has already been used.");
+        });
+
+        it('Should not allow scanning a ticket if event is cancelled', async () => {
+            // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
             await ticketing.cancelEvent(1);
 
             // WHEN / THEN
             await expect(
-                ticketing.connect(other).useTicket(2)
+                ticketing.connect(owner).scanTicket(userTicketId)
             ).to.be.revertedWith("Event is cancelled.");
+        });
+
+        it('Should emit TicketUsed with scanner address', async () => {
+            // GIVEN
+            await ticketing.connect(user).createTicket(1, TicketType.STANDARD, ticketURIStandard);
+            const userTicketId = await ticketing.ticketIdByEventAndOwner(1, user.address);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(owner).scanTicket(userTicketId)
+            ).to.emit(ticketing, "TicketUsed")
+            .withArgs(userTicketId, owner.address);
         });
     });
 

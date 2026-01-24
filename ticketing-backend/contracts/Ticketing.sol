@@ -196,15 +196,34 @@ contract Ticketing is ERC721URIStorage {
         return from;
     }
 
-    function useTicket(uint256 ticketId) public {
+    function scanTicket(uint256 ticketId) public {
         Ticket storage ticket = tickets[ticketId];
 
-        require(ownerOf(ticketId) == msg.sender, "Only the ticket owner can use the ticket.");
+        // Ticket owner cannot scan their own ticket except organizer
+        require(ownerOf(ticketId) != msg.sender || ticket.ticketType == TicketType.ORGANIZER, "Ticket owner cannot scan their own ticket.");
+
+        // Scanner must have a ticket 
+        uint256 scannerTicketId = ticketIdByEventAndOwner[ticket.eventId][msg.sender];
+        require(scannerTicketId != 0, "Scanner does not have a ticket for this event.");
+
+        Ticket storage scannerTicket = tickets[scannerTicketId];
+
+        // Scanner ticket type must be STAFF or ORGANIZER
+        require(scannerTicket.ticketType == TicketType.STAFF || scannerTicket.ticketType == TicketType.ORGANIZER, "Only STAFF or ORGANIZER can scan tickets.");
+
+        // Scanner ticket must be used
+        if (scannerTicket.ticketType == TicketType.STAFF) {
+            require(scannerTicket.used == true, "STAFF must be scanned before scanning others.");
+        }
+
+        // Ticket must not be used
         require(ticket.used == false, "Ticket has already been used.");
 
+        // Event must not be cancelled
         Event storage ev = events[ticket.eventId];
         require(!ev.cancelled, "Event is cancelled.");
 
+        // Mark ticket as used
         ticket.used = true;
         emit TicketUsed(ticketId, msg.sender);
     }
