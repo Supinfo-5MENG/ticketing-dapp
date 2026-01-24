@@ -606,4 +606,56 @@ describe('Ticketing contract', () => {
             expect(await ticketing.ownerOf(ticketId)).to.equal(other.address);
         });
     });
+
+    describe("NFT transfers restrictions", () => {
+
+        let receiver: any;
+
+        beforeEach(async () => {
+            [, , receiver] = await ethers.getSigners();
+        });
+
+        it("Should prevent direct ERC721 transfer", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, other.address);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).transferFrom(other.address, owner.address, ticketId)
+            ).to.be.revertedWith("Direct NFT transfers are disabled.");
+        });
+
+        it("Should allow resale via resellTicket", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+
+            // WHEN
+            await ticketing.connect(other).resellTicket(1, receiver.address);
+
+            // THEN
+            const ticketId = await ticketing.ticketIdByEventAndOwner(1, receiver.address);
+            expect(await ticketing.ownerOf(ticketId)).to.equal(receiver.address);
+        });
+
+        it("Should prevent resale of VIP ticket", async () => {
+            // GIVEN
+            await ticketing.createTicketFor(1, other.address, TicketType.VIP);
+
+            // WHEN / THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, owner.address)
+            ).to.be.revertedWith("Only STANDARD tickets can be resold.");
+        });
+
+        it("Should revert resale if recipient already has a ticket", async () => {
+            // GIVEN
+            await ticketing.connect(other).createTicket(1, TicketType.STANDARD);
+
+            // THEN
+            await expect(
+                ticketing.connect(other).resellTicket(1, owner.address)
+            ).to.be.revertedWith("Recipient already has a ticket for this event.");
+        });
+    });
 });

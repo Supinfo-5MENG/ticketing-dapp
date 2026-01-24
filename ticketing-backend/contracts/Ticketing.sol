@@ -4,6 +4,9 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract Ticketing is ERC721 {
+
+    bool private _isResellInProgress;
+
     // Tickets
     enum TicketType {
         STANDARD,
@@ -160,11 +163,34 @@ contract Ticketing is ERC721 {
         require(ticket.ticketType == TicketType.STANDARD, "Only STANDARD tickets can be resold.");
         require(ticketIdByEventAndOwner[eventId][to] == 0, "Recipient already has a ticket for this event.");
 
+        _isResellInProgress = true;
+
         ticketIdByEventAndOwner[eventId][to] = ticketId;
         ticketIdByEventAndOwner[eventId][msg.sender] = 0;
         _transfer(msg.sender, to, ticketId);
 
+        _isResellInProgress = false;
+
         emit TicketResold(ticketId, eventId, msg.sender, to);
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+        address from = super._update(to, tokenId, auth);
+
+        // Mint
+        if (from == address(0) || to == address(0)) {
+            return from;
+        }
+
+        require(_isResellInProgress, "Direct NFT transfers are disabled.");
+
+        Ticket storage ticket = tickets[tokenId];
+        Event storage ev = events[ticket.eventId];
+
+        require(!ev.cancelled, "Event is cancelled");
+        require(ticket.ticketType == TicketType.STANDARD, "Only STANDARD tickets can be transferred.");
+
+        return from;
     }
 
     function useTicket(uint256 ticketId) public {
