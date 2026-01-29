@@ -7,15 +7,20 @@ import { motion } from "framer-motion";
 
 export function CreateEventForm() {
   const [eventName, setEventName] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [metadataURI, setMetadataURI] = useState("");
   const { createEvent, isPending } = useCreateEvent();
   const { isConnected } = useAccount();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (eventName.trim()) {
-      createEvent(eventName);
-      setEventName("");
-    }
+    if (!eventName.trim() || !endDate) return;
+
+    const endTimestamp = BigInt(Math.floor(new Date(endDate).getTime() / 1000));
+    createEvent(eventName, endTimestamp, metadataURI);
+    setEventName("");
+    setEndDate("");
+    setMetadataURI("");
   };
 
   if (!isConnected) {
@@ -42,12 +47,15 @@ export function CreateEventForm() {
     );
   }
 
+  // Get minimum date (now + 1 hour)
+  const minDate = new Date(Date.now() + 3600000).toISOString().slice(0, 16);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label
           htmlFor="eventName"
-          className="block text-sm font-medium text-zinc-300 mb-2.5"
+          className="block text-sm font-medium text-zinc-300 mb-2"
         >
           Nom de l&apos;evenement
         </label>
@@ -58,12 +66,49 @@ export function CreateEventForm() {
           onChange={(e) => setEventName(e.target.value)}
           placeholder="Concert, Conference, Festival..."
           className="w-full px-5 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/30 transition-all duration-300 backdrop-blur-sm"
+          required
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="endDate"
+          className="block text-sm font-medium text-zinc-300 mb-2"
+        >
+          Date de fin
+        </label>
+        <input
+          type="datetime-local"
+          id="endDate"
+          value={endDate}
+          min={minDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="w-full px-5 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/30 transition-all duration-300 backdrop-blur-sm [color-scheme:dark]"
+          required
+        />
+      </div>
+
+      <div>
+        <label
+          htmlFor="metadataURI"
+          className="block text-sm font-medium text-zinc-300 mb-2"
+        >
+          Metadata URI{" "}
+          <span className="text-zinc-600 font-normal">(optionnel)</span>
+        </label>
+        <input
+          type="text"
+          id="metadataURI"
+          value={metadataURI}
+          onChange={(e) => setMetadataURI(e.target.value)}
+          placeholder="ipfs://... ou https://..."
+          className="w-full px-5 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500/30 transition-all duration-300 backdrop-blur-sm"
         />
       </div>
 
       <motion.button
         type="submit"
-        disabled={isPending || !eventName.trim()}
+        disabled={isPending || !eventName.trim() || !endDate}
         className="relative w-full py-3.5 px-6 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:from-zinc-800 disabled:to-zinc-800 disabled:cursor-not-allowed text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 overflow-hidden group"
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
