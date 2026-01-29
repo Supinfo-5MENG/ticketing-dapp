@@ -22,7 +22,7 @@ export default function RootLayout({
       >
         <Web3Provider>
           <Header />
-          <main className="pt-16">{children}</main>
+          <main className="pt-20">{children}</main>
         </Web3Provider>
       </body>
     </html>

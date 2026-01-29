@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
-const MODEL_PATH = "/models/Microphone N260809.glb";
+const MODEL_PATH = "/models/Microphone.glb";
 
 export function Microphone3D() {
   const groupRef = useRef<THREE.Group>(null);
@@ -18,7 +18,7 @@ export function Microphone3D() {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.material = new THREE.MeshStandardMaterial({
-          color: new THREE.Color("#a855f7"),
+          // color: new THREE.Color("#a855f7"),
           metalness: 0.85,
           roughness: 0.15,
           envMapIntensity: 1.2,
@@ -57,9 +57,9 @@ export function Microphone3D() {
     box.getCenter(center);
 
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 2.5 / maxDim;
+    const scale = 12.5;
     scene.scale.setScalar(scale);
-    scene.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+    scene.position.set(-center.x * scale, (-center.y * scale +0.05), -center.z * scale);
   }, [scene]);
 
   return (

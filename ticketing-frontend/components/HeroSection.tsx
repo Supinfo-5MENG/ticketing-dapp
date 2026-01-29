@@ -29,7 +29,7 @@ const MusicNotes3D = dynamic(
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
+    <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden pt-16">
       {/* Background gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-32 w-96 h-96 bg-violet-600/20 rounded-full blur-[128px] animate-pulse-slow" />
@@ -107,7 +107,7 @@ export function HeroSection() {
       </div>
 
       {/* 3D Elements - Microphone + Ticket interactive */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-6">
+      <div className="relative z-10 w-full max-w-5xl mx-auto gap-4 px-6">
         <motion.div
           className="h-[350px] md:h-[400px]"
           initial={{ opacity: 0, x: -50 }}
@@ -122,19 +122,19 @@ export function HeroSection() {
           </Scene3D>
         </motion.div>
 
-        <motion.div
-          className="h-[350px] md:h-[400px]"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, delay: 0.65, ease: "easeOut" }}
-        >
-          <Scene3D
-            className="w-full h-full cursor-grab active:cursor-grabbing"
-            camera={{ position: [0, 0, 4.5], fov: 45 }}
-          >
-            <Ticket3D />
-          </Scene3D>
-        </motion.div>
+        {/*<motion.div*/}
+        {/*  className="h-[350px] md:h-[400px]"*/}
+        {/*  initial={{ opacity: 0, x: 50 }}*/}
+        {/*  animate={{ opacity: 1, x: 0 }}*/}
+        {/*  transition={{ duration: 1, delay: 0.65, ease: "easeOut" }}*/}
+        {/*>*/}
+        {/*  <Scene3D*/}
+        {/*    className="w-full h-full cursor-grab active:cursor-grabbing"*/}
+        {/*    camera={{ position: [0, 0, 4.5], fov: 45 }}*/}
+        {/*  >*/}
+        {/*    <Ticket3D />*/}
+        {/*  </Scene3D>*/}
+        {/*</motion.div>*/}
       </div>
 
       {/* Scroll indicator */}

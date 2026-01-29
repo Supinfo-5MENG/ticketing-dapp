@@ -57,7 +57,7 @@ export default function Home() {
       <section id="events" className="relative py-24 px-6">
         {/* Section background orbs */}
         <div className="absolute top-1/3 -left-64 w-[500px] h-[500px] bg-violet-600/6 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 -right-64 w-[500px] h-[500px] bg-fuchsia-600/6 rounded-full blur-[120px] pointer-events-none" />
+        {/*<div className="absolute bottom-0 -right-64 w-[500px] h-[500px] bg-fuchsia-600/6 rounded-full blur-[120px] pointer-events-none" />*/}
 
         <div className="max-w-7xl mx-auto relative">
           {/* Section header */}

@@ -3,7 +3,11 @@
   <component name="ChangeListManager">
     <list default="true" id="dee6dcfd-a3a3-4723-93fb-96c5681ff297" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ticketing-frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ticketing-frontend/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ticketing-frontend/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ticketing-frontend/components/3d/Microphone3D.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/components/3d/Microphone3D.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ticketing-frontend/components/HeroSection.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/components/HeroSection.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ticketing-frontend/public/models/Microphone N260809.glb" beforeDir="false" afterPath="$PROJECT_DIR$/ticketing-frontend/public/models/Microphone.glb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +58,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\clement\Documents\GitHub\ticketing-dapp\ticketing-frontend\public\model" />
       <recent name="C:\Users\Xeltax\Documents\GitHub\ticketing-dapp\ticketing-frontend\providers" />
     </key>
   </component>
@@ -74,7 +79,7 @@
       <workItem from="1769160274488" duration="366000" />
       <workItem from="1769168819411" duration="878000" />
       <workItem from="1769169715199" duration="705000" />
-      <workItem from="1769674704829" duration="1079000" />
+      <workItem from="1769674704829" duration="3364000" />
     </task>
     <servers />
   </component>
