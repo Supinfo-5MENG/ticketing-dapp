@@ -1,13 +1,33 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { MeshDistortMaterial, RoundedBox, Sphere } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+
+const MODEL_PATH = "/models/Microphone N260809.glb";
 
 export function Microphone3D() {
   const groupRef = useRef<THREE.Group>(null);
   const { pointer } = useThree();
+  const { scene } = useGLTF(MODEL_PATH);
+
+  // Apply metallic violet material to all meshes
+  useEffect(() => {
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color("#a855f7"),
+          metalness: 0.85,
+          roughness: 0.15,
+          envMapIntensity: 1.2,
+        });
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+  }, [scene]);
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
@@ -25,88 +45,29 @@ export function Microphone3D() {
       delta * 3
     );
     // Gentle floating
-    groupRef.current.position.y =
-      Math.sin(Date.now() * 0.001) * 0.15;
+    groupRef.current.position.y = Math.sin(Date.now() * 0.001) * 0.15;
   });
 
+  // Center and auto-scale the model
+  useEffect(() => {
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2.5 / maxDim;
+    scene.scale.setScalar(scale);
+    scene.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+  }, [scene]);
+
   return (
-    <group ref={groupRef} scale={1.2}>
-      {/* Microphone head - sphere with metallic look */}
-      <Sphere args={[0.7, 32, 32]} position={[0, 1.0, 0]}>
-        <meshStandardMaterial
-          color="#a855f7"
-          metalness={0.9}
-          roughness={0.15}
-          envMapIntensity={1.5}
-        />
-      </Sphere>
-
-      {/* Mesh grille overlay */}
-      <Sphere args={[0.72, 16, 16]} position={[0, 1.0, 0]}>
-        <meshStandardMaterial
-          color="#7c3aed"
-          wireframe
-          transparent
-          opacity={0.4}
-        />
-      </Sphere>
-
-      {/* Glow sphere behind */}
-      <Sphere args={[0.85, 16, 16]} position={[0, 1.0, 0]}>
-        <MeshDistortMaterial
-          color="#d946ef"
-          transparent
-          opacity={0.12}
-          distort={0.3}
-          speed={2}
-        />
-      </Sphere>
-
-      {/* Neck ring */}
-      <mesh position={[0, 0.25, 0]}>
-        <cylinderGeometry args={[0.32, 0.35, 0.15, 32]} />
-        <meshStandardMaterial
-          color="#52525b"
-          metalness={0.95}
-          roughness={0.1}
-        />
-      </mesh>
-
-      {/* Body / handle */}
-      <RoundedBox
-        args={[0.3, 1.6, 0.3]}
-        radius={0.12}
-        smoothness={4}
-        position={[0, -0.65, 0]}
-      >
-        <meshStandardMaterial
-          color="#27272a"
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </RoundedBox>
-
-      {/* Handle accent ring */}
-      <mesh position={[0, -0.1, 0]}>
-        <cylinderGeometry args={[0.18, 0.18, 0.08, 32]} />
-        <meshStandardMaterial
-          color="#a855f7"
-          metalness={0.9}
-          roughness={0.1}
-          emissive="#a855f7"
-          emissiveIntensity={0.3}
-        />
-      </mesh>
-
-      {/* Bottom cap */}
-      <mesh position={[0, -1.5, 0]}>
-        <sphereGeometry args={[0.17, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial
-          color="#3f3f46"
-          metalness={0.9}
-          roughness={0.15}
-        />
-      </mesh>
+    <group ref={groupRef}>
+      <primitive object={scene} />
     </group>
   );
 }
+
+// Preload the model
+useGLTF.preload(MODEL_PATH);
