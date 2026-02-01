@@ -1,5 +1,9 @@
 # Ticketing DApp - Documentation technique
 
+## Membres du groupe
+- Clément Honore
+- Ewen Bosquet
+
 ## Table des matieres
 
 1. [Presentation du projet](#presentation-du-projet)
