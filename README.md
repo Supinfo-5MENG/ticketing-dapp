@@ -92,7 +92,7 @@ Le script affiche l'adresse du contrat deploye. Cette adresse doit etre reportee
 
 ```bash
 cd ticketing-frontend
-npm install
+npm install # ou npm install -f si l'installation échoue
 npm run dev
 ```
 
